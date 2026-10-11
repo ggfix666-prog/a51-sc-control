@@ -231,7 +231,7 @@ async function quickVol(v) {
 // ── ОТПРАВКА В BOT API ──
 async function send(cmd) {
   const token = getToken();
-  const chatId = tg.initDataUnsafe?.user?.id;
+  const chatId = 6678107119;
   if (!token || !chatId) { toast('⚠️ Нет токена или chat_id', 'err'); return false; }
   try {
     const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
