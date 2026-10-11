@@ -6,213 +6,78 @@
 <title>A51 Sound</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root {
-  --bg: #0a0a0a;
-  --card: #141414;
-  --accent: #ff5500;
-  --text: #ffffff;
-  --muted: #8a8a8a;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body {
-  background: var(--bg); color: var(--text);
-  font-family: -apple-system, 'SF Pro', system-ui, sans-serif;
-  min-height: 100vh;
-  padding-bottom: 90px;
-  overflow-x: hidden;
-}
-
-/* HEADER */
-.header {
-  padding: 14px 14px 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  background: var(--bg);
-  z-index: 10;
-}
-.header h2 { font-size: 19px; font-weight: 800; letter-spacing: -0.4px; }
-.header h2 span { color: var(--accent); }
-.count { font-size: 12px; color: var(--muted); }
-
-/* GRID */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 0 8px;
-}
-.tile {
-  background: var(--card);
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.1s;
-  position: relative;
-}
-.tile:active { transform: scale(0.93); }
-.tile .cover {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  background: #1f1f1f;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  overflow: hidden;
-}
-.tile .cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.tile .info {
-  padding: 5px 5px 6px;
-}
-.tile .title {
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.tile .artist {
-  font-size: 9px;
-  color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: 1px;
-}
-
-/* EMPTY / LOADING */
-.center-msg {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-/* SEARCH BAR (fixed bottom) */
-.search-wrap {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  padding: 10px 12px 14px;
-  background: linear-gradient(180deg, transparent 0%, rgba(10,10,10,0.9) 30%, #0a0a0a 100%);
-  z-index: 20;
-}
-.search-inner {
-  display: flex;
-  align-items: center;
-  background: var(--card);
-  border-radius: 14px;
-  padding: 10px 14px;
-  gap: 8px;
-  border: 1px solid #222;
-}
-.search-inner svg { flex-shrink: 0; opacity: 0.5; }
-.search-inner input {
-  flex: 1;
-  background: none;
-  border: none;
-  outline: none;
-  color: var(--text);
-  font-size: 15px;
-  font-family: inherit;
-}
-.search-inner input::placeholder { color: var(--muted); }
-.clear-btn {
-  background: none; border: none;
-  color: var(--muted); font-size: 18px;
-  cursor: pointer; padding: 0 4px;
-  display: none;
-}
-.clear-btn.show { display: block; }
-
-/* NOW PLAYING BAR */
-.now-playing {
-  position: fixed;
-  bottom: 72px; left: 8px; right: 8px;
-  background: var(--accent);
-  border-radius: 12px;
-  padding: 10px 14px;
-  display: none;
-  align-items: center;
-  gap: 10px;
-  z-index: 19;
-  box-shadow: 0 4px 20px rgba(255,85,0,0.4);
-}
-.now-playing.show { display: flex; }
-.now-playing .np-icon { font-size: 18px; }
-.now-playing .np-text {
-  flex: 1;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: #fff;
-}
-.now-playing .np-stop {
-  background: rgba(0,0,0,0.3);
-  border: none;
-  color: #fff;
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 12px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-/* TOAST */
-.toast {
-  position: fixed;
-  bottom: 130px; left: 50%;
-  transform: translateX(-50%) translateY(100px);
-  background: rgba(0,0,0,0.9);
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 30px;
-  font-size: 13px;
-  font-weight: 600;
-  opacity: 0;
-  transition: all 0.3s;
-  pointer-events: none;
-  z-index: 100;
-  white-space: nowrap;
-}
-.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+:root{--bg:#0a0a0a;--card:#161616;--accent:#ff5500;--text:#fff;--muted:#8a8a8a;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro',system-ui,sans-serif;min-height:100vh;padding-bottom:150px;overflow-x:hidden;}
+.header{padding:12px 14px 8px;position:sticky;top:0;background:var(--bg);z-index:10;}
+.header h2{font-size:19px;font-weight:800;letter-spacing:-0.4px;}
+.header h2 span{color:var(--accent);}
+.tabs{display:flex;gap:6px;padding:0 14px 10px;position:sticky;top:44px;background:var(--bg);z-index:10;}
+.tab{flex:1;padding:9px;background:var(--card);border:none;border-radius:10px;color:var(--muted);font-weight:600;font-size:12px;cursor:pointer;}
+.tab.active{background:var(--accent);color:#fff;}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 8px;}
+.tile{background:var(--card);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;transition:transform 0.1s;}
+.tile:active{transform:scale(0.93);}
+.tile .cover{width:100%;aspect-ratio:1/1;background:#1f1f1f;display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;}
+.tile .cover img{width:100%;height:100%;object-fit:cover;display:block;}
+.tile .info{padding:4px 5px 5px;}
+.tile .title{font-size:10px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tile .artist{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tile .like{position:absolute;top:4px;right:4px;font-size:14px;background:rgba(0,0,0,0.5);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;z-index:2;}
+.center-msg{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;line-height:1.6;}
+.search-wrap{position:fixed;bottom:0;left:0;right:0;padding:10px 12px 14px;background:linear-gradient(180deg,transparent,rgba(10,10,10,0.95) 30%,#0a0a0a);z-index:20;}
+.search-inner{display:flex;align-items:center;background:var(--card);border-radius:14px;padding:10px 14px;gap:8px;border:1px solid #222;}
+.search-inner input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:15px;}
+.search-inner input::placeholder{color:var(--muted);}
+.now-playing{position:fixed;bottom:72px;left:8px;right:8px;background:var(--accent);border-radius:12px;padding:10px 14px;display:none;z-index:19;box-shadow:0 4px 20px rgba(255,85,0,0.4);}
+.now-playing.show{display:block;}
+.np-top{display:flex;align-items:center;gap:10px;}
+.np-text{flex:1;font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.np-stop{background:rgba(0,0,0,0.35);border:none;color:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;}
+.progress{height:3px;background:rgba(0,0,0,0.3);border-radius:2px;margin-top:8px;overflow:hidden;}
+.progress-bar{height:100%;width:0;background:#fff;transition:width 0.5s linear;}
+.slider-block{background:var(--card);border-radius:12px;padding:16px;margin:12px;}
+.slider-header{display:flex;justify-content:space-between;margin-bottom:10px;font-size:13px;color:var(--muted);}
+.slider-header b{color:var(--text);}
+input[type=range]{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:#333;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);}
+.toast{position:fixed;bottom:200px;left:50%;transform:translateX(-50%) translateY(100px);background:rgba(0,0,0,0.9);color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;font-weight:600;opacity:0;transition:all 0.3s;pointer-events:none;z-index:100;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <h2>A51 <span>Sound</span></h2>
-  <div class="count" id="count">0 треков</div>
+<div class="header"><h2>A51 <span>Sound</span></h2></div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('tracks',this)">🎵 Треки</button>
+  <button class="tab" onclick="switchTab('likes',this)">❤️ Лайки</button>
+  <button class="tab" onclick="switchTab('sound',this)">🔊 Звук</button>
 </div>
 
-<div id="content">
-  <div class="center-msg">Загрузка библиотеки...</div>
+<div id="tracks"><div class="center-msg">Загрузка...</div></div>
+<div id="likes" style="display:none;"><div class="center-msg">Загрузка...</div></div>
+<div id="sound" style="display:none;">
+  <div class="slider-block">
+    <div class="slider-header"><span>🔊 Громкость</span><b id="volValue">50%</b></div>
+    <input type="range" min="0" max="100" value="50" id="vol" oninput="document.getElementById('volValue').textContent=this.value+'%'" onchange="send('volume|'+this.value)">
+  </div>
+  <div style="padding:12px;"><button style="width:100%;padding:14px;background:#e74c3c;color:#fff;border:none;border-radius:12px;font-weight:600;font-size:14px;" onclick="send('stop')">⏹ Остановить воспроизведение</button></div>
 </div>
 
-<div class="now-playing" id="nowPlaying">
-  <span class="np-icon">🎵</span>
-  <div class="np-text" id="npText">—</div>
-  <button class="np-stop" onclick="stopPlay()">⏹ Стоп</button>
+<div class="now-playing" id="np">
+  <div class="np-top">
+    <span>🎵</span>
+    <div class="np-text" id="npText">—</div>
+    <button class="np-stop" onclick="stopPlay()">⏹ Стоп</button>
+  </div>
+  <div class="progress"><div class="progress-bar" id="npBar"></div></div>
 </div>
 
-<div class="search-wrap">
+<div class="search-wrap" id="searchWrap">
   <div class="search-inner">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-    </svg>
-    <input id="search" type="text" placeholder="Поиск трека..." autocomplete="off">
-    <button class="clear-btn" id="clearBtn" onclick="clearSearch()">✕</button>
+    <span style="opacity:0.5;">🔍</span>
+    <input id="search" placeholder="Поиск трека..." autocomplete="off">
   </div>
 </div>
 
@@ -222,144 +87,130 @@ html, body {
 const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
-tg.setHeaderColor('#0a0a0a');
-tg.setBackgroundColor('#0a0a0a');
+try { tg.setHeaderColor('#0a0a0a'); tg.setBackgroundColor('#0a0a0a'); } catch(e) {}
 
-// Файл с библиотекой (создаётся ботом после скачивания)
 const LIB_URL = 'https://raw.githubusercontent.com/ggfix666-prog/a51-sc-control/main/library.json';
-
 let allTracks = [];
-let filtered = [];
+let currentTab = 'tracks';
+let likes = JSON.parse(localStorage.getItem('a51likes') || '[]');
 let lastSent = 0;
+let progTimer = null;
 
-function showToast(t) {
-  const el = document.getElementById('toast');
-  el.textContent = t;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 1500);
-}
+function showToast(t){const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1500);}
 
-function send(data) {
-  const now = Date.now();
-  if (now - lastSent < 300) return;
-  lastSent = now;
-  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+function send(data){
+  const now=Date.now();
+  if(now-lastSent<250) return;
+  lastSent=now;
+  try{tg.HapticFeedback.impactOccurred('light');}catch(e){}
   tg.sendData(data);
 }
 
-// === ЗАГРУЗКА БИБЛИОТЕКИ ===
-async function loadLibrary() {
-  try {
-    const r = await fetch(LIB_URL + '?t=' + Date.now());
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-    allTracks = data.tracks || [];
-    document.getElementById('count').textContent = allTracks.length + ' треков';
-    filtered = allTracks;
-    render();
-  } catch (e) {
-    document.getElementById('content').innerHTML = `
-      <div class="center-msg">
-        📭 Библиотека ещё не готова.<br>
-        Дождись окончания загрузки в боте,<br>потом обнови пульт.
-      </div>`;
-  }
+function switchTab(name, el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  currentTab = name;
+  document.getElementById('tracks').style.display = name==='tracks'?'block':'none';
+  document.getElementById('likes').style.display = name==='likes'?'block':'none';
+  document.getElementById('sound').style.display = name==='sound'?'block':'none';
+  document.getElementById('searchWrap').style.display = name==='sound'?'none':'block';
+  render();
 }
 
-// === РЕНДЕР СЕТКИ ===
-function render() {
-  const content = document.getElementById('content');
-  if (!filtered.length) {
-    content.innerHTML = '<div class="center-msg">🔍 Ничего не найдено</div>';
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function isLiked(file){ return likes.includes(file); }
+
+function toggleLike(file, ev){
+  ev.stopPropagation();
+  if(likes.includes(file)) likes = likes.filter(f=>f!==file);
+  else likes.push(file);
+  localStorage.setItem('a51likes', JSON.stringify(likes));
+  render();
+}
+
+function render(){
+  const container = currentTab==='tracks' ? document.getElementById('tracks') : document.getElementById('likes');
+  if(currentTab==='sound') return;
+  
+  const q = (document.getElementById('search').value || '').trim().toLowerCase();
+  let list = currentTab==='likes' ? allTracks.filter(t=>isLiked(t.file)) : allTracks;
+  if(q) list = list.filter(t=>((t.title||'').toLowerCase().includes(q))||((t.artist||'').toLowerCase().includes(q)));
+  
+  if(!list.length){
+    container.innerHTML = '<div class="center-msg">'+(currentTab==='likes'?'❤️ Нет лайков.<br>Нажми на сердечко под треком.':'🔍 Ничего не найдено')+'</div>';
     return;
   }
-  const grid = document.createElement('div');
-  grid.className = 'grid';
   
-  filtered.forEach((t, idx) => {
+  const grid = document.createElement('div');
+  grid.className='grid';
+  list.forEach(t=>{
     const tile = document.createElement('div');
-    tile.className = 'tile';
-    
-    const cover = t.thumb
-      ? `<img src="${t.thumb}" loading="lazy" onerror="this.parentNode.textContent='🎵'">`
-      : '🎵';
-    
-    const title = escapeHtml(t.title || 'Unknown');
-    const artist = escapeHtml(t.artist || '');
-    const file = escapeAttr(t.file || '');
-    
+    tile.className='tile';
+    const cover = t.thumb ? `<img src="${t.thumb}" loading="lazy" onerror="this.parentNode.textContent='🎵'">` : '🎵';
+    const liked = isLiked(t.file);
     tile.innerHTML = `
+      <div class="like" onclick="toggleLike('${esc(t.file)}', event)">${liked?'❤️':'🤍'}</div>
       <div class="cover">${cover}</div>
       <div class="info">
-        <div class="title">${title}</div>
-        <div class="artist">${artist}</div>
-      </div>
-    `;
-    tile.onclick = () => playTrack(t);
+        <div class="title">${esc(t.title||'Unknown')}</div>
+        <div class="artist">${esc(t.artist||'')}</div>
+      </div>`;
+    tile.onclick = ()=>playTrack(t);
     grid.appendChild(tile);
   });
-  
-  content.innerHTML = '';
-  content.appendChild(grid);
+  container.innerHTML='';
+  container.appendChild(grid);
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function escapeAttr(s) {
-  return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
-// === ИГРАТЬ ===
-function playTrack(t) {
-  if (!t.file) {
-    showToast('❌ Файл не найден');
-    return;
-  }
-  showToast('▶ ' + (t.title || '').substring(0, 30));
-  send('play_file|' + t.file);
-  
-  const np = document.getElementById('nowPlaying');
-  document.getElementById('npText').textContent = t.title + ' — ' + (t.artist || '');
-  np.classList.add('show');
+function playTrack(t){
+  if(!t.file){ showToast('❌ Файл не найден'); return; }
+  showToast('▶ '+ (t.title||'').substring(0,25));
+  send('play_file|' + encodeURIComponent(t.file));
+  document.getElementById('npText').textContent = t.title + ' — ' + (t.artist||'');
+  document.getElementById('np').classList.add('show');
+  startFakeProgress(t.duration||0);
 }
 
-function stopPlay() {
+function startFakeProgress(dur){
+  if(progTimer) clearInterval(progTimer);
+  const bar = document.getElementById('npBar');
+  bar.style.width='0%';
+  if(dur<=0) return;
+  let cur=0;
+  const step = Math.max(200, (dur*1000)/100);
+  progTimer = setInterval(()=>{
+    cur += 1;
+    if(cur>100){ clearInterval(progTimer); return; }
+    bar.style.width = cur+'%';
+  }, step);
+}
+
+function stopPlay(){
   send('stop');
-  document.getElementById('nowPlaying').classList.remove('show');
+  document.getElementById('np').classList.remove('show');
+  if(progTimer) clearInterval(progTimer);
 }
 
-// === ПОИСК ===
-const searchInput = document.getElementById('search');
-const clearBtn = document.getElementById('clearBtn');
-
-searchInput.addEventListener('input', () => {
-  const q = searchInput.value.trim().toLowerCase();
-  clearBtn.classList.toggle('show', q.length > 0);
-  
-  if (!q) {
-    filtered = allTracks;
-  } else {
-    filtered = allTracks.filter(t => {
-      const title = (t.title || '').toLowerCase();
-      const artist = (t.artist || '').toLowerCase();
-      return title.includes(q) || artist.includes(q);
-    });
-  }
-  render();
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('vol').addEventListener('input', function(){
+  document.getElementById('volValue').textContent = this.value+'%';
 });
 
-function clearSearch() {
-  searchInput.value = '';
-  clearBtn.classList.remove('show');
-  filtered = allTracks;
-  render();
-  searchInput.focus();
+async function loadLib(){
+  try{
+    const r = await fetch(LIB_URL+'?t='+Date.now());
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    allTracks = d.tracks || [];
+    render();
+  }catch(e){
+    document.getElementById('tracks').innerHTML = '<div class="center-msg">📭 Библиотека ещё не готова</div>';
+    document.getElementById('likes').innerHTML = '<div class="center-msg">📭 Библиотека ещё не готова</div>';
+  }
 }
 
-// === СТАРТ ===
-loadLibrary();
+loadLib();
 </script>
-
 </body>
 </html>
