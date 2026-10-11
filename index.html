@@ -107,25 +107,6 @@ let curTab = 'all';
 let curFile = null;
 let liked = new Set(JSON.parse(localStorage.getItem('sc_liked') || '[]'));
 
-// ── ТОКЕН ─────────────────────────────────
-function getToken() {
-  let t = localStorage.getItem('a51_bot_token_v2');
-  if (!t) {
-    t = prompt('Введи токен бота (сохранится только на этом телефоне):');
-    if (!t || t.trim().length < 20) { alert('Без токена пульт не работает'); return null; }
-    t = t.trim();
-    localStorage.setItem('a51_bot_token_v2', t);
-  }
-  return t;
-}
-
-function resetToken() {
-  if (confirm('Сбросить сохранённый токен?')) {
-    localStorage.removeItem('a51_bot_token');
-    location.reload();
-  }
-}
-
 // ── ЗАГРУЗКА ──
 async function loadLib() {
   try {
@@ -141,13 +122,9 @@ async function loadLib() {
   }
 }
 
-// ── РЕНДЕР ──
 function renderGrid(tracks) {
   const g = document.getElementById('grid');
-  if (!tracks.length) {
-    g.innerHTML = '<div id="status-block"><div>Ничего не найдено</div></div>';
-    return;
-  }
+  if (!tracks.length) { g.innerHTML = '<div id="status-block"><div>Ничего не найдено</div></div>'; return; }
   g.innerHTML = '';
   tracks.forEach(t => {
     const d = document.createElement('div');
@@ -193,8 +170,7 @@ function switchTab(tab, el) {
 // ── ВОСПРОИЗВЕДЕНИЕ ──
 async function playTrack(t) {
   try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
-  const ok = await send('play_file|' + encodeURIComponent(t.file));
-  if (!ok) return;
+  if (!send('play_file|' + encodeURIComponent(t.file))) return;
   curFile = t.file;
   const np = document.getElementById('now-playing');
   np.classList.add('show');
@@ -207,43 +183,32 @@ async function playTrack(t) {
   toast('▶ ' + (t.title || t.file), 'ok');
 }
 
-async function doStop() {
+function doStop() {
   try { tg.HapticFeedback.impactOccurred('medium'); } catch(e) {}
-  const ok = await send('stop');
-  if (!ok) return;
+  send('stop');
   curFile = null;
   document.getElementById('now-playing').classList.remove('show');
   document.querySelectorAll('.tr.on').forEach(el => el.classList.remove('on'));
   toast('⏹ Остановлено');
 }
 
-async function doVolume() {
+function doVolume() {
   const v = prompt('Громкость (0–100):', '60');
   if (v === null || v.trim() === '' || isNaN(v)) return;
-  await quickVol(parseInt(v));
+  quickVol(parseInt(v));
 }
 
-async function quickVol(v) {
-  const ok = await send('volume|' + v);
-  if (ok) toast('🔊 ' + v + '%', 'ok');
+function quickVol(v) {
+  send('volume|' + v);
+  toast('🔊 ' + v + '%', 'ok');
 }
 
-// ── ОТПРАВКА В BOT API ──
-async function send(cmd) {
-  const token = getToken();
-  const chatId = 6678107119;
-  if (!token || !chatId) { toast('⚠️ Нет токена или chat_id', 'err'); return false; }
+// ═══════════════════════════════════════════════
+//  ОТПРАВКА ЧЕРЕЗ tg.sendData() — БОТ ЭТО ВИДИТ
+// ═══════════════════════════════════════════════
+function send(cmd) {
   try {
-    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: 'sc:' + cmd })
-    });
-    if (!r.ok) {
-      const t = await r.text();
-      console.error(t);
-      throw new Error('HTTP ' + r.status);
-    }
+    tg.sendData(cmd);
     return true;
   } catch(e) {
     toast('❌ ' + e.message, 'err');
@@ -251,7 +216,6 @@ async function send(cmd) {
   }
 }
 
-// ── TOAST ──
 let _tt;
 function toast(msg, cls) {
   const el = document.getElementById('toast');
