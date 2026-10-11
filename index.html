@@ -2,21 +2,21 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>A51 Sound</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{--bg:#0a0a0a;--card:#161616;--accent:#ff5500;--text:#fff;--muted:#8a8a8a;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro',system-ui,sans-serif;min-height:100vh;padding-bottom:150px;overflow-x:hidden;}
+html,body{background:var(--bg);color:var(--text);font-family:-apple-system,system-ui,sans-serif;min-height:100vh;padding-bottom:170px;}
 .header{padding:12px 14px 8px;position:sticky;top:0;background:var(--bg);z-index:10;}
-.header h2{font-size:19px;font-weight:800;letter-spacing:-0.4px;}
+.header h2{font-size:19px;font-weight:800;}
 .header h2 span{color:var(--accent);}
 .tabs{display:flex;gap:6px;padding:0 14px 10px;position:sticky;top:44px;background:var(--bg);z-index:10;}
 .tab{flex:1;padding:9px;background:var(--card);border:none;border-radius:10px;color:var(--muted);font-weight:600;font-size:12px;cursor:pointer;}
 .tab.active{background:var(--accent);color:#fff;}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 8px;}
-.tile{background:var(--card);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;transition:transform 0.1s;}
+.tile{background:var(--card);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;}
 .tile:active{transform:scale(0.93);}
 .tile .cover{width:100%;aspect-ratio:1/1;background:#1f1f1f;display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;}
 .tile .cover img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -24,16 +24,17 @@ html,body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF P
 .tile .title{font-size:10px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tile .artist{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tile .like{position:absolute;top:4px;right:4px;font-size:14px;background:rgba(0,0,0,0.5);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;z-index:2;}
-.center-msg{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;line-height:1.6;}
-.search-wrap{position:fixed;bottom:0;left:0;right:0;padding:10px 12px 14px;background:linear-gradient(180deg,transparent,rgba(10,10,10,0.95) 30%,#0a0a0a);z-index:20;}
-.search-inner{display:flex;align-items:center;background:var(--card);border-radius:14px;padding:10px 14px;gap:8px;border:1px solid #222;}
+.center-msg{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;}
+.bottom-stack{position:fixed;bottom:0;left:0;right:0;z-index:20;padding:0 12px 12px;background:linear-gradient(180deg,transparent,rgba(10,10,10,0.95) 30%,#0a0a0a);}
+.search-inner{display:flex;align-items:center;background:var(--card);border-radius:14px;padding:10px 14px;gap:8px;border:1px solid #222;margin-top:6px;}
 .search-inner input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:15px;}
 .search-inner input::placeholder{color:var(--muted);}
-.now-playing{position:fixed;bottom:72px;left:8px;right:8px;background:var(--accent);border-radius:12px;padding:10px 14px;display:none;z-index:19;box-shadow:0 4px 20px rgba(255,85,0,0.4);}
-.now-playing.show{display:block;}
-.np-top{display:flex;align-items:center;gap:10px;}
-.np-text{flex:1;font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.np-stop{background:rgba(0,0,0,0.35);border:none;color:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;}
+.player{background:var(--accent);border-radius:14px;padding:10px 12px;display:none;box-shadow:0 4px 20px rgba(255,85,0,0.4);}
+.player.show{display:block;}
+.player-top{display:flex;align-items:center;gap:10px;}
+.player-text{flex:1;font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.player-btn{background:rgba(0,0,0,0.35);border:none;color:#fff;border-radius:10px;width:38px;height:38px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.player-btn:active{transform:scale(0.92);}
 .progress{height:3px;background:rgba(0,0,0,0.3);border-radius:2px;margin-top:8px;overflow:hidden;}
 .progress-bar{height:100%;width:0;background:#fff;transition:width 0.5s linear;}
 .slider-block{background:var(--card);border-radius:12px;padding:16px;margin:12px;}
@@ -41,7 +42,7 @@ html,body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF P
 .slider-header b{color:var(--text);}
 input[type=range]{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:#333;outline:none;}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);}
-.toast{position:fixed;bottom:200px;left:50%;transform:translateX(-50%) translateY(100px);background:rgba(0,0,0,0.9);color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;font-weight:600;opacity:0;transition:all 0.3s;pointer-events:none;z-index:100;}
+.toast{position:fixed;bottom:210px;left:50%;transform:translateX(-50%) translateY(100px);background:rgba(0,0,0,0.9);color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;font-weight:600;opacity:0;transition:all 0.3s;pointer-events:none;z-index:100;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
 </head>
@@ -56,25 +57,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 </div>
 
 <div id="tracks"><div class="center-msg">Загрузка...</div></div>
-<div id="likes" style="display:none;"><div class="center-msg">Загрузка...</div></div>
+<div id="likes" style="display:none;"></div>
 <div id="sound" style="display:none;">
   <div class="slider-block">
     <div class="slider-header"><span>🔊 Громкость</span><b id="volValue">50%</b></div>
     <input type="range" min="0" max="100" value="50" id="vol" oninput="document.getElementById('volValue').textContent=this.value+'%'" onchange="send('volume|'+this.value)">
   </div>
-  <div style="padding:12px;"><button style="width:100%;padding:14px;background:#e74c3c;color:#fff;border:none;border-radius:12px;font-weight:600;font-size:14px;" onclick="send('stop')">⏹ Остановить воспроизведение</button></div>
 </div>
 
-<div class="now-playing" id="np">
-  <div class="np-top">
-    <span>🎵</span>
-    <div class="np-text" id="npText">—</div>
-    <button class="np-stop" onclick="stopPlay()">⏹ Стоп</button>
+<div class="bottom-stack">
+  <div class="player" id="player">
+    <div class="player-top">
+      <button class="player-btn" id="pauseBtn" onclick="togglePause()">⏸</button>
+      <div class="player-text" id="playerText">—</div>
+      <button class="player-btn" onclick="stopPlay()">⏹</button>
+    </div>
+    <div class="progress"><div class="progress-bar" id="pBar"></div></div>
   </div>
-  <div class="progress"><div class="progress-bar" id="npBar"></div></div>
-</div>
-
-<div class="search-wrap" id="searchWrap">
   <div class="search-inner">
     <span style="opacity:0.5;">🔍</span>
     <input id="search" placeholder="Поиск трека..." autocomplete="off">
@@ -84,132 +83,97 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 <div class="toast" id="toast"></div>
 
 <script>
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
-try { tg.setHeaderColor('#0a0a0a'); tg.setBackgroundColor('#0a0a0a'); } catch(e) {}
+const tg=window.Telegram.WebApp;
+tg.ready(); tg.expand();
+try{tg.setHeaderColor('#0a0a0a');tg.setBackgroundColor('#0a0a0a');}catch(e){}
 
-const LIB_URL = 'https://raw.githubusercontent.com/ggfix666-prog/a51-sc-control/main/library.json';
-let allTracks = [];
-let currentTab = 'tracks';
-let likes = JSON.parse(localStorage.getItem('a51likes') || '[]');
-let lastSent = 0;
-let progTimer = null;
+const LIB_URL='https://raw.githubusercontent.com/ggfix666-prog/a51-sc-control/main/library.json';
+let allTracks=[], currentTab='tracks';
+let likes=JSON.parse(localStorage.getItem('a51likes')||'[]');
+let lastSent=0, progTimer=null, isPaused=false, currentTrack=null;
 
-function showToast(t){const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1500);}
+function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1500);}
+function send(d){const n=Date.now();if(n-lastSent<250)return;lastSent=n;try{tg.HapticFeedback.impactOccurred('light');}catch(e){}tg.sendData(d);}
 
-function send(data){
-  const now=Date.now();
-  if(now-lastSent<250) return;
-  lastSent=now;
-  try{tg.HapticFeedback.impactOccurred('light');}catch(e){}
-  tg.sendData(data);
-}
-
-function switchTab(name, el){
+function switchTab(name,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  currentTab = name;
-  document.getElementById('tracks').style.display = name==='tracks'?'block':'none';
-  document.getElementById('likes').style.display = name==='likes'?'block':'none';
-  document.getElementById('sound').style.display = name==='sound'?'block':'none';
-  document.getElementById('searchWrap').style.display = name==='sound'?'none':'block';
+  el.classList.add('active'); currentTab=name;
+  ['tracks','likes','sound'].forEach(id=>document.getElementById(id).style.display=id===name?'block':'none');
   render();
 }
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
-function isLiked(file){ return likes.includes(file); }
-
-function toggleLike(file, ev){
-  ev.stopPropagation();
-  if(likes.includes(file)) likes = likes.filter(f=>f!==file);
-  else likes.push(file);
-  localStorage.setItem('a51likes', JSON.stringify(likes));
-  render();
-}
+function isLiked(f){return likes.includes(f);}
+function toggleLike(f,ev){ev.stopPropagation();if(likes.includes(f))likes=likes.filter(x=>x!==f);else likes.push(f);localStorage.setItem('a51likes',JSON.stringify(likes));render();}
 
 function render(){
-  const container = currentTab==='tracks' ? document.getElementById('tracks') : document.getElementById('likes');
-  if(currentTab==='sound') return;
-  
-  const q = (document.getElementById('search').value || '').trim().toLowerCase();
-  let list = currentTab==='likes' ? allTracks.filter(t=>isLiked(t.file)) : allTracks;
-  if(q) list = list.filter(t=>((t.title||'').toLowerCase().includes(q))||((t.artist||'').toLowerCase().includes(q)));
-  
-  if(!list.length){
-    container.innerHTML = '<div class="center-msg">'+(currentTab==='likes'?'❤️ Нет лайков.<br>Нажми на сердечко под треком.':'🔍 Ничего не найдено')+'</div>';
-    return;
-  }
-  
-  const grid = document.createElement('div');
-  grid.className='grid';
+  if(currentTab==='sound')return;
+  const container=document.getElementById(currentTab);
+  const q=(document.getElementById('search').value||'').trim().toLowerCase();
+  let list=currentTab==='likes'?allTracks.filter(t=>isLiked(t.file)):allTracks;
+  if(q) list=list.filter(t=>((t.title||'').toLowerCase().includes(q))||((t.artist||'').toLowerCase().includes(q)));
+  if(!list.length){container.innerHTML='<div class="center-msg">'+(currentTab==='likes'?'❤️ Нет лайков':'🔍 Ничего не найдено')+'</div>';return;}
+  const grid=document.createElement('div');grid.className='grid';
   list.forEach(t=>{
-    const tile = document.createElement('div');
-    tile.className='tile';
-    const cover = t.thumb ? `<img src="${t.thumb}" loading="lazy" onerror="this.parentNode.textContent='🎵'">` : '🎵';
-    const liked = isLiked(t.file);
-    tile.innerHTML = `
-      <div class="like" onclick="toggleLike('${esc(t.file)}', event)">${liked?'❤️':'🤍'}</div>
-      <div class="cover">${cover}</div>
-      <div class="info">
-        <div class="title">${esc(t.title||'Unknown')}</div>
-        <div class="artist">${esc(t.artist||'')}</div>
-      </div>`;
-    tile.onclick = ()=>playTrack(t);
+    const tile=document.createElement('div');tile.className='tile';
+    const cov=t.thumb?`<img src="${t.thumb}" loading="lazy" onerror="this.parentNode.textContent='🎵'">`:'🎵';
+    tile.innerHTML=`<div class="like" onclick="toggleLike('${esc(t.file)}',event)">${isLiked(t.file)?'❤️':'🤍'}</div>
+    <div class="cover">${cov}</div>
+    <div class="info"><div class="title">${esc(t.title||'Unknown')}</div><div class="artist">${esc(t.artist||'')}</div></div>`;
+    tile.onclick=()=>playTrack(t);
     grid.appendChild(tile);
   });
-  container.innerHTML='';
-  container.appendChild(grid);
+  container.innerHTML='';container.appendChild(grid);
 }
 
 function playTrack(t){
-  if(!t.file){ showToast('❌ Файл не найден'); return; }
-  showToast('▶ '+ (t.title||'').substring(0,25));
-  send('play_file|' + encodeURIComponent(t.file));
-  document.getElementById('npText').textContent = t.title + ' — ' + (t.artist||'');
-  document.getElementById('np').classList.add('show');
-  startFakeProgress(t.duration||0);
+  if(!t.file){showToast('❌ Нет файла');return;}
+  currentTrack=t; isPaused=false;
+  document.getElementById('pauseBtn').textContent='⏸';
+  showToast('▶ '+(t.title||'').substring(0,25));
+  send('play_file|'+encodeURIComponent(t.file));
+  document.getElementById('playerText').textContent=t.title+' — '+(t.artist||'');
+  document.getElementById('player').classList.add('show');
+  startProgress(t.duration||0);
 }
 
-function startFakeProgress(dur){
-  if(progTimer) clearInterval(progTimer);
-  const bar = document.getElementById('npBar');
-  bar.style.width='0%';
-  if(dur<=0) return;
-  let cur=0;
-  const step = Math.max(200, (dur*1000)/100);
-  progTimer = setInterval(()=>{
-    cur += 1;
-    if(cur>100){ clearInterval(progTimer); return; }
-    bar.style.width = cur+'%';
-  }, step);
+function startProgress(dur){
+  if(progTimer)clearInterval(progTimer);
+  const bar=document.getElementById('pBar');bar.style.width='0%';
+  if(dur<=0)return;
+  let cur=0;const step=Math.max(200,(dur*1000)/100);
+  progTimer=setInterval(()=>{cur+=1;if(cur>100){clearInterval(progTimer);return;}bar.style.width=cur+'%';},step);
 }
+
+function togglePause(){
+  if(!currentTrack)return;
+  isPaused=!isPaused;
+  document.getElementById('pauseBtn').textContent=isPaused?'▶':'⏸';
+  send(isPaused?'pause':'resume');
+  if(progTimer){isPaused?clearInterval(progTimer):startProgressFrom(currentTrack.duration||0);}
+}
+function startProgressFrom(d){/* упрощённо */startProgress(d);}
 
 function stopPlay(){
   send('stop');
-  document.getElementById('np').classList.remove('show');
-  if(progTimer) clearInterval(progTimer);
+  document.getElementById('player').classList.remove('show');
+  currentTrack=null;isPaused=false;
+  if(progTimer)clearInterval(progTimer);
 }
 
-document.getElementById('search').addEventListener('input', render);
-document.getElementById('vol').addEventListener('input', function(){
-  document.getElementById('volValue').textContent = this.value+'%';
-});
+document.getElementById('search').addEventListener('input',render);
+document.getElementById('vol').addEventListener('input',function(){document.getElementById('volValue').textContent=this.value+'%';});
 
 async function loadLib(){
   try{
-    const r = await fetch(LIB_URL+'?t='+Date.now());
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const d = await r.json();
-    allTracks = d.tracks || [];
-    render();
+    const r=await fetch(LIB_URL+'?t='+Date.now());
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    allTracks=d.tracks||[];render();
   }catch(e){
-    document.getElementById('tracks').innerHTML = '<div class="center-msg">📭 Библиотека ещё не готова</div>';
-    document.getElementById('likes').innerHTML = '<div class="center-msg">📭 Библиотека ещё не готова</div>';
+    document.getElementById('tracks').innerHTML='<div class="center-msg">📭 Библиотека не загрузилась</div>';
   }
 }
-
 loadLib();
 </script>
 </body>
