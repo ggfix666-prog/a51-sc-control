@@ -2,7 +2,7 @@ import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 import subprocess, os, json, time, signal, urllib.parse
 
-TOKEN = '8862843776:8862843776:AAGKe_JntPbUSk0dNRPSXl73gut3n9zZEaU'
+TOKEN = '8862843776:AAGKe_JntPbUSk0dNRPSXl73gut3n9zZEaU'
 ADMIN_ID = 6678107119
 PULT_URL = 'https://raw.githack.com/ggfix666-prog/a51-sc-control/main/index.html'
 SC_DIR = '/sdcard/Music/SoundCloud'
@@ -201,12 +201,12 @@ def loc_cmd(message):
     except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
 
 # ═══════════════════════════════════════════════
-#  ОБРАБОТЧИК КОМАНД ОТ WEB APP (sc:xxx|yyy)
-#  Пульт шлёт обычный текст, ловим его тут
+#  ОБРАБОТЧИК WEB APP DATA (от пульта)
 # ═══════════════════════════════════════════════
-@bot.message_handler(func=lambda m: is_admin(m) and m.text and m.text.startswith('sc:'))
-def sc_command(message):
-    raw = message.text[3:]  # без префикса sc:
+@bot.message_handler(content_types=['web_app_data'])
+def handle_webapp(message):
+    raw = message.web_app_data.data
+    print(f"[WEBAPP] Получено: {raw[:80]}")
     parts = raw.split('|')
     a = parts[0]
     try:
@@ -214,11 +214,15 @@ def sc_command(message):
             fname = urllib.parse.unquote(parts[1])
             idx = find_index_by_file(fname)
             if idx < 0:
-                bot.send_message(message.chat.id, f"❌ Не в библиотеке: {fname}"); return
+                bot.send_message(message.chat.id, f"❌ Не в библиотеке: {fname[:40]}")
+                return
             ok, err = play_from_index(idx, loop=True)
             t = LIB[idx]
-            bot.send_message(message.chat.id,
-                f"▶️ {t.get('title','?')} — {t.get('artist','')}\n🔁 Дальше по кругу." if ok else f"❌ {err}")
+            if ok:
+                bot.send_message(message.chat.id,
+                    f"▶️ {t.get('title','?')} — {t.get('artist','')}\n🔁 Дальше по кругу.")
+            else:
+                bot.send_message(message.chat.id, f"❌ {err}")
         elif a == 'stop':
             stop_current()
             bot.send_message(message.chat.id, "⏹ Стоп")
@@ -239,8 +243,12 @@ def sc_command(message):
         else:
             bot.send_message(message.chat.id, f"❓ Неизвестно: {raw[:40]}")
     except Exception as e:
+        print(f"[WEBAPP] ERROR: {e}")
         bot.send_message(message.chat.id, f"❌ Ошибка: {e}")
 
+# ═══════════════════════════════════════════════
+#  CALLBACK (кнопки из /list)
+# ═══════════════════════════════════════════════
 @bot.callback_query_handler(func=lambda c: True)
 def cb(call):
     d = call.data
