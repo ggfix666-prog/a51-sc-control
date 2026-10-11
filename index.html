@@ -40,6 +40,21 @@ body { background: #111; color: #fff; font-family: -apple-system, BlinkMacSystem
 .tr-artist { font-size: 8.5px; color: #bbb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tr-play-dot { display: none; position: absolute; top: 4px; left: 4px; width: 14px; height: 14px; background: #ff5500; border-radius: 50%; align-items: center; justify-content: center; font-size: 7px; color: #fff; }
 .tr.on .tr-play-dot { display: flex; }
+/* ── КНОПКА ЛАЙКА ── */
+.tr-like {
+  position: absolute; top: 4px; right: 4px;
+  width: 24px; height: 24px;
+  background: rgba(0,0,0,0.55);
+  border: none; border-radius: 50%;
+  color: #fff; font-size: 13px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 5;
+  padding: 0;
+  transition: transform 0.15s, background 0.15s;
+}
+.tr-like:active { transform: scale(0.8); }
+.tr-like.liked { background: #ff3050; color: #fff; }
 #status-block { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 14px; color: #555; grid-column: 1 / -1; }
 .spin { width: 38px; height: 38px; border: 3px solid #2a2a2a; border-top-color: #ff5500; border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -75,7 +90,7 @@ body { background: #111; color: #fff; font-family: -apple-system, BlinkMacSystem
 
 <div class="tabs">
   <button class="tab on" onclick="switchTab('all',this)">🎵 Треки</button>
-  <button class="tab" onclick="switchTab('liked',this)">❤️ Лайки</button>
+  <button class="tab" onclick="switchTab('liked',this)">❤️ Лайки <span id="likeCount"></span></button>
   <button class="tab" onclick="switchTab('sound',this)">🔊 Звук</button>
 </div>
 
@@ -114,6 +129,7 @@ async function loadLib() {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
     allTracks = data.tracks || [];
+    updateLikeCount();
     renderGrid(allTracks);
   } catch(e) {
     document.getElementById('status-block').innerHTML =
@@ -122,29 +138,82 @@ async function loadLib() {
   }
 }
 
+// ── РЕНДЕР ──
 function renderGrid(tracks) {
   const g = document.getElementById('grid');
-  if (!tracks.length) { g.innerHTML = '<div id="status-block"><div>Ничего не найдено</div></div>'; return; }
+  if (!tracks.length) {
+    const msg = curTab === 'liked'
+      ? '❤️ Нет лайков.<br><span style="font-size:12px">Нажми на сердечко в углу трека, чтобы добавить.</span>'
+      : '🔍 Ничего не найдено';
+    g.innerHTML = `<div id="status-block"><div style="text-align:center;line-height:1.6">${msg}</div></div>`;
+    return;
+  }
   g.innerHTML = '';
   tracks.forEach(t => {
     const d = document.createElement('div');
     d.className = 'tr' + (t.file === curFile ? ' on' : '');
     d.dataset.file = t.file;
+
     const cover = t.thumb
       ? `<img class="tr-img" src="${t.thumb}" loading="lazy" decoding="async" alt="">`
       : `<div class="tr-no-img">🎵</div>`;
-    d.innerHTML = `<div class="tr-play-dot">▶</div>${cover}
+
+    const isLiked = liked.has(t.file);
+    d.innerHTML = `
+      <button class="tr-like ${isLiked ? 'liked' : ''}" onclick="toggleLike(event, '${escapeAttr(t.file)}')">${isLiked ? '❤️' : '🤍'}</button>
+      <div class="tr-play-dot">▶</div>
+      ${cover}
       <div class="tr-overlay">
         <div class="tr-title">${esc(t.title || t.file)}</div>
         ${t.artist ? `<div class="tr-artist">${esc(t.artist)}</div>` : ''}
       </div>`;
-    d.addEventListener('click', () => playTrack(t));
+
+    d.addEventListener('click', (e) => {
+      // если тапнул на кнопку лайка — не запускаем трек
+      if (e.target.classList.contains('tr-like')) return;
+      playTrack(t);
+    });
     g.appendChild(d);
   });
 }
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeAttr(s) { return String(s).replace(/'/g, "\\'"); }
 
+// ── ЛАЙКИ ──
+function toggleLike(event, file) {
+  event.stopPropagation();
+  event.preventDefault();
+  try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
+
+  if (liked.has(file)) {
+    liked.delete(file);
+    toast('Убрано из лайков');
+  } else {
+    liked.add(file);
+    toast('❤️ Добавлено в лайки', 'ok');
+  }
+  localStorage.setItem('sc_liked', JSON.stringify([...liked]));
+  updateLikeCount();
+
+  // Мгновенно обновить кнопку
+  const btn = event.currentTarget;
+  const isLiked = liked.has(file);
+  btn.classList.toggle('liked', isLiked);
+  btn.textContent = isLiked ? '❤️' : '🤍';
+
+  // Если на вкладке «Лайки» — убрать трек из списка
+  if (curTab === 'liked' && !isLiked) {
+    setTimeout(() => renderGrid(getPool()), 200);
+  }
+}
+
+function updateLikeCount() {
+  const el = document.getElementById('likeCount');
+  if (el) el.textContent = liked.size > 0 ? `(${liked.size})` : '';
+}
+
+// ── ПОИСК / ВКЛАДКИ ──
 function onSearch(q) {
   q = q.toLowerCase().trim();
   const pool = getPool();
@@ -168,9 +237,9 @@ function switchTab(tab, el) {
 }
 
 // ── ВОСПРОИЗВЕДЕНИЕ ──
-async function playTrack(t) {
+function playTrack(t) {
   try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
-  if (!send('play_file|' + encodeURIComponent(t.file))) return;
+  send('play_file|' + encodeURIComponent(t.file));
   curFile = t.file;
   const np = document.getElementById('now-playing');
   np.classList.add('show');
@@ -203,17 +272,9 @@ function quickVol(v) {
   toast('🔊 ' + v + '%', 'ok');
 }
 
-// ═══════════════════════════════════════════════
-//  ОТПРАВКА ЧЕРЕЗ tg.sendData() — БОТ ЭТО ВИДИТ
-// ═══════════════════════════════════════════════
 function send(cmd) {
-  try {
-    tg.sendData(cmd);
-    return true;
-  } catch(e) {
-    toast('❌ ' + e.message, 'err');
-    return false;
-  }
+  try { tg.sendData(cmd); return true; }
+  catch(e) { toast('❌ ' + e.message, 'err'); return false; }
 }
 
 let _tt;
