@@ -4,7 +4,7 @@ import subprocess, os, json, time, signal, urllib.parse
 
 TOKEN = '8862843776:AAEjax3sBVer7jKKP8DkZPjdygC32f9QDaE'
 ADMIN_ID = 6678107119
-PULT_URL = f'https://cdn.jsdelivr.net/gh/ggfix666-prog/a51-sc-control@main/index.html?t={TOKEN}'
+PULT_URL = 'https://raw.githack.com/ggfix666-prog/a51-sc-control/main/index.html'
 SC_DIR = '/sdcard/Music/SoundCloud'
 LIB_PATH = '/sdcard/Download/library.json'
 PLAYLIST_FILE = '/sdcard/Download/current_playlist.m3u'
@@ -31,8 +31,7 @@ def stop_current():
     global current_process
     if current_process and current_process.poll() is None:
         try:
-            current_process.terminate()
-            current_process.wait(timeout=2)
+            current_process.terminate(); current_process.wait(timeout=2)
         except:
             try: current_process.kill()
             except: pass
@@ -40,7 +39,6 @@ def stop_current():
     current_process = None
 
 def play_from_index(idx, loop=True):
-    """Играет с idx и дальше по кругу"""
     global current_process
     if not LIB: return False, "Нет библиотеки"
     stop_current()
@@ -202,15 +200,54 @@ def loc_cmd(message):
         bot.reply_to(message, f"📍 {lat}, {lon}\nhttps://maps.google.com/?q={lat},{lon}")
     except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
 
+# ═══════════════════════════════════════════════
+#  ОБРАБОТЧИК КОМАНД ОТ WEB APP (sc:xxx|yyy)
+#  Пульт шлёт обычный текст, ловим его тут
+# ═══════════════════════════════════════════════
+@bot.message_handler(func=lambda m: is_admin(m) and m.text and m.text.startswith('sc:'))
+def sc_command(message):
+    raw = message.text[3:]  # без префикса sc:
+    parts = raw.split('|')
+    a = parts[0]
+    try:
+        if a == 'play_file' and len(parts) > 1:
+            fname = urllib.parse.unquote(parts[1])
+            idx = find_index_by_file(fname)
+            if idx < 0:
+                bot.send_message(message.chat.id, f"❌ Не в библиотеке: {fname}"); return
+            ok, err = play_from_index(idx, loop=True)
+            t = LIB[idx]
+            bot.send_message(message.chat.id,
+                f"▶️ {t.get('title','?')} — {t.get('artist','')}\n🔁 Дальше по кругу." if ok else f"❌ {err}")
+        elif a == 'stop':
+            stop_current()
+            bot.send_message(message.chat.id, "⏹ Стоп")
+        elif a == 'pause':
+            if current_process and current_process.poll() is None:
+                try: os.kill(current_process.pid, signal.SIGSTOP)
+                except: pass
+            bot.send_message(message.chat.id, "⏸ Пауза")
+        elif a == 'resume':
+            if current_process and current_process.poll() is None:
+                try: os.kill(current_process.pid, signal.SIGCONT)
+                except: pass
+            bot.send_message(message.chat.id, "▶️ Продолжаю")
+        elif a == 'volume' and len(parts) > 1:
+            v = int(parts[1])
+            subprocess.run(["termux-volume","music",str(int(v/100*15))])
+            bot.send_message(message.chat.id, f"🔊 {v}%")
+        else:
+            bot.send_message(message.chat.id, f"❓ Неизвестно: {raw[:40]}")
+    except Exception as e:
+        bot.send_message(message.chat.id, f"❌ Ошибка: {e}")
+
 @bot.callback_query_handler(func=lambda c: True)
 def cb(call):
     d = call.data
     if d == "noop": bot.answer_callback_query(call.id); return
     if d == "stop":
-        stop_current()
-        bot.answer_callback_query(call.id, "⏹")
-        bot.send_message(call.message.chat.id, "⏹ Остановлено.")
-        return
+        stop_current(); bot.answer_callback_query(call.id, "⏹")
+        bot.send_message(call.message.chat.id, "⏹ Остановлено."); return
     if d == "pause":
         if current_process and current_process.poll() is None:
             try: os.kill(current_process.pid, signal.SIGSTOP)
@@ -224,8 +261,7 @@ def cb(call):
     if d.startswith("pg|"):
         page = int(d.split("|")[1])
         try:
-            bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id,
-                reply_markup=build_page(page, LIB))
+            bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=build_page(page, LIB))
         except: pass
         bot.answer_callback_query(call.id); return
     if d.startswith("p|"):
@@ -235,44 +271,10 @@ def cb(call):
         ok, err = play_from_index(i, loop=True)
         if ok:
             bot.answer_callback_query(call.id, "▶️")
-            bot.send_message(call.message.chat.id,
-                f"▶️ {t.get('title','?')} — {t.get('artist','')}\n"
-                f"🔁 Дальше по кругу. /stop — стоп.")
+            bot.send_message(call.message.chat.id, f"▶️ {t.get('title','?')} — {t.get('artist','')}\n🔁 Дальше по кругу.")
         else:
             bot.answer_callback_query(call.id, f"❌ {err}", show_alert=True)
         return
-
-# WEB APP — старый способ через sendData (оставляем для совместимости)
-@bot.message_handler(content_types=['web_app_data'])
-def webapp(message):
-    _handle_sc(message.chat.id, message.web_app_data.data)
-
-# WEB APP — новый способ: пульт отправляет sc:команда через Bot API и НЕ закрывается
-@bot.message_handler(func=lambda m: is_admin(m) and m.text and m.text.startswith('sc:'))
-def webapp_fetch(message):
-    _handle_sc(message.chat.id, message.text[3:])
-
-def _handle_sc(chat_id, d):
-    try:
-        p = d.split("|"); a = p[0]
-        if a == "play_file":
-            fname = urllib.parse.unquote(p[1])
-            idx = find_index_by_file(fname)
-            if idx < 0:
-                bot.send_message(chat_id, f"❌ Не в библиотеке: {fname}"); return
-            ok, err = play_from_index(idx, loop=True)
-            t = LIB[idx]
-            bot.send_message(chat_id,
-                f"▶️ {t.get('title','?')}\n🔁 Дальше по кругу." if ok else f"❌ {err}")
-        elif a == "stop":
-            stop_current()
-            bot.send_message(chat_id, "⏹ Стоп")
-        elif a == "volume":
-            vol = max(0, min(100, int(p[1])))
-            subprocess.run(["termux-volume","music",str(int(vol/100*15))])
-            bot.send_message(chat_id, f"🔊 {vol}%")
-    except Exception as e:
-        bot.send_message(chat_id, f"❌ {e}")
 
 print("SoundCloud Bot запущен...")
 bot.polling(none_stop=True)
