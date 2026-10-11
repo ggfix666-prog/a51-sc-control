@@ -2,7 +2,7 @@ import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 import subprocess, os, json, time, signal, urllib.parse
 
-TOKEN = '8862843776:AAEjax3sBVer7jKKP8DkZPjdygC32f9QDaE'
+TOKEN = '8862843776:8862843776:AAGKe_JntPbUSk0dNRPSXl73gut3n9zZEaU'
 ADMIN_ID = 6678107119
 PULT_URL = 'https://raw.githack.com/ggfix666-prog/a51-sc-control/main/index.html'
 SC_DIR = '/sdcard/Music/SoundCloud'
