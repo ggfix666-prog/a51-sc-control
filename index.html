@@ -3,43 +3,189 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>A51 SoundCloud Remote</title>
+<title>A51 Sound</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root { --bg: #121212; --card: #1e1e1e; --accent: #ff5500; --text: #fff; --muted: #a0a0a0; }
+:root {
+  --bg: #0a0a0a;
+  --card: #141414;
+  --accent: #ff5500;
+  --text: #ffffff;
+  --muted: #8a8a8a;
+}
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body { background: var(--bg); color: var(--text); font-family: -apple-system, 'SF Pro', system-ui, sans-serif; padding: 16px; min-height: 100vh; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.header h2 { font-size: 20px; font-weight: 800; }
+html, body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, 'SF Pro', system-ui, sans-serif;
+  min-height: 100vh;
+  padding-bottom: 90px;
+  overflow-x: hidden;
+}
+
+/* HEADER */
+.header {
+  padding: 14px 14px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+.header h2 { font-size: 19px; font-weight: 800; letter-spacing: -0.4px; }
 .header h2 span { color: var(--accent); }
-.status { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: #2ecc71; box-shadow: 0 0 8px #2ecc71; animation: p 2s infinite; }
-@keyframes p { 0%,100%{opacity:1} 50%{opacity:.4} }
-.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-.tab { flex: 1; padding: 10px; background: var(--card); border: none; border-radius: 10px; color: var(--muted); font-weight: 600; font-size: 13px; cursor: pointer; }
-.tab.active { background: var(--accent); color: #fff; }
-.refresh { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; margin-bottom: 16px; background: var(--card); border: 1px dashed var(--accent); border-radius: 12px; color: var(--accent); font-weight: 600; cursor: pointer; }
-.refresh:active { background: rgba(255,85,0,0.1); }
-.track-list { display: flex; flex-direction: column; gap: 8px; }
-.track-item { background: var(--card); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 10px; }
-.track-thumb { width: 44px; height: 44px; border-radius: 8px; background: #2a2a2a; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; overflow: hidden; }
-.track-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.track-info { flex: 1; min-width: 0; }
-.track-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.track-artist { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.track-actions { display: flex; gap: 6px; flex-shrink: 0; }
-.btn-mini { background: var(--accent); color: #fff; border: none; border-radius: 8px; width: 38px; height: 38px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.btn-mini:active { transform: scale(0.9); }
-.btn-mini.dl { background: #2a2a2a; }
-.empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
-.loading { text-align: center; padding: 40px; color: var(--muted); }
-.section-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin: 16px 0 8px; }
-.slider-block { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-.slider-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; color: var(--muted); }
-.slider-header b { color: var(--text); }
-input[type=range] { width: 100%; -webkit-appearance: none; height: 6px; border-radius: 3px; background: #333; outline: none; }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); }
-.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(0,0,0,0.9); color: #fff; padding: 12px 20px; border-radius: 30px; font-size: 14px; font-weight: 600; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 100; }
+.count { font-size: 12px; color: var(--muted); }
+
+/* GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 0 8px;
+}
+.tile {
+  background: var(--card);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.1s;
+  position: relative;
+}
+.tile:active { transform: scale(0.93); }
+.tile .cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #1f1f1f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  overflow: hidden;
+}
+.tile .cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tile .info {
+  padding: 5px 5px 6px;
+}
+.tile .title {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tile .artist {
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+/* EMPTY / LOADING */
+.center-msg {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* SEARCH BAR (fixed bottom) */
+.search-wrap {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding: 10px 12px 14px;
+  background: linear-gradient(180deg, transparent 0%, rgba(10,10,10,0.9) 30%, #0a0a0a 100%);
+  z-index: 20;
+}
+.search-inner {
+  display: flex;
+  align-items: center;
+  background: var(--card);
+  border-radius: 14px;
+  padding: 10px 14px;
+  gap: 8px;
+  border: 1px solid #222;
+}
+.search-inner svg { flex-shrink: 0; opacity: 0.5; }
+.search-inner input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+}
+.search-inner input::placeholder { color: var(--muted); }
+.clear-btn {
+  background: none; border: none;
+  color: var(--muted); font-size: 18px;
+  cursor: pointer; padding: 0 4px;
+  display: none;
+}
+.clear-btn.show { display: block; }
+
+/* NOW PLAYING BAR */
+.now-playing {
+  position: fixed;
+  bottom: 72px; left: 8px; right: 8px;
+  background: var(--accent);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  z-index: 19;
+  box-shadow: 0 4px 20px rgba(255,85,0,0.4);
+}
+.now-playing.show { display: flex; }
+.now-playing .np-icon { font-size: 18px; }
+.now-playing .np-text {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+}
+.now-playing .np-stop {
+  background: rgba(0,0,0,0.3);
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 130px; left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(0,0,0,0.9);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  transition: all 0.3s;
+  pointer-events: none;
+  z-index: 100;
+  white-space: nowrap;
+}
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 </style>
 </head>
@@ -47,31 +193,27 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px;
 
 <div class="header">
   <h2>A51 <span>Sound</span></h2>
-  <div class="status"><span class="dot"></span>online</div>
+  <div class="count" id="count">0 треков</div>
 </div>
 
-<div class="tabs">
-  <button class="tab active" onclick="switchTab('tracks', this)">🎧 Треки</button>
-  <button class="tab" onclick="switchTab('sound', this)">🎛️ Звук</button>
+<div id="content">
+  <div class="center-msg">Загрузка библиотеки...</div>
 </div>
 
-<div id="tracks">
-  <button class="refresh" onclick="refreshLikes()">🔄 Обновить лайки из SoundCloud</button>
-  <div class="section-title">Лайкнутые треки</div>
-  <div class="track-list" id="trackList">
-    <div class="loading">Загрузка...</div>
+<div class="now-playing" id="nowPlaying">
+  <span class="np-icon">🎵</span>
+  <div class="np-text" id="npText">—</div>
+  <button class="np-stop" onclick="stopPlay()">⏹ Стоп</button>
+</div>
+
+<div class="search-wrap">
+  <div class="search-inner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+    </svg>
+    <input id="search" type="text" placeholder="Поиск трека..." autocomplete="off">
+    <button class="clear-btn" id="clearBtn" onclick="clearSearch()">✕</button>
   </div>
-</div>
-
-<div id="sound" style="display:none;">
-  <div class="section-title">Громкость A51</div>
-  <div class="slider-block">
-    <div class="slider-header"><span>🔊 Уровень</span><b id="volValue">50%</b></div>
-    <input type="range" min="0" max="100" value="50" id="vol"
-      oninput="document.getElementById('volValue').textContent = this.value + '%'"
-      onchange="send('volume|' + this.value)">
-  </div>
-  <button class="refresh" onclick="send('stop')" style="border-color:#e74c3c;color:#e74c3c;">⏹ Остановить воспроизведение</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -80,16 +222,15 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px;
 const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
+tg.setHeaderColor('#0a0a0a');
+tg.setBackgroundColor('#0a0a0a');
 
-const TRACKS_URL = 'https://raw.githubusercontent.com/ggfix666-prog/a51-sc-control/main/tracks.json';
+// Файл с библиотекой (создаётся ботом после скачивания)
+const LIB_URL = 'https://raw.githubusercontent.com/ggfix666-prog/a51-sc-control/main/library.json';
+
+let allTracks = [];
+let filtered = [];
 let lastSent = 0;
-
-function switchTab(name, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('tracks').style.display = name === 'tracks' ? 'block' : 'none';
-  document.getElementById('sound').style.display = name === 'sound' ? 'block' : 'none';
-}
 
 function showToast(t) {
   const el = document.getElementById('toast');
@@ -98,61 +239,126 @@ function showToast(t) {
   setTimeout(() => el.classList.remove('show'), 1500);
 }
 
-function send(cmd) {
+function send(data) {
   const now = Date.now();
-  if (now - lastSent < 400) return;
+  if (now - lastSent < 300) return;
   lastSent = now;
-  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-  showToast('→ ' + cmd.split('|')[0]);
-  tg.sendData(cmd);
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+  tg.sendData(data);
 }
 
-async function loadTracks() {
-  const list = document.getElementById('trackList');
-  list.innerHTML = '<div class="loading">Загрузка...</div>';
+// === ЗАГРУЗКА БИБЛИОТЕКИ ===
+async function loadLibrary() {
   try {
-    const r = await fetch(TRACKS_URL + '?t=' + Date.now());
+    const r = await fetch(LIB_URL + '?t=' + Date.now());
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
-    const tracks = d.tracks || [];
-    if (!tracks.length) {
-      list.innerHTML = '<div class="empty">📭 Пока нет треков.<br>Нажми «Обновить лайки» выше.</div>';
-      return;
-    }
-    list.innerHTML = '';
-    tracks.forEach((t) => {
-      const div = document.createElement('div');
-      div.className = 'track-item';
-      const thumb = t.thumb 
-        ? `<div class="track-thumb"><img src="${t.thumb}" onerror="this.parentNode.textContent='🎵'"></div>`
-        : '<div class="track-thumb">🎵</div>';
-      const title = (t.title || 'Unknown').replace(/</g, '&lt;');
-      const artist = (t.artist || '').replace(/</g, '&lt;');
-      div.innerHTML = `
-        ${thumb}
-        <div class="track-info">
-          <div class="track-title">${title}</div>
-          <div class="track-artist">${artist}</div>
-        </div>
-        <div class="track-actions">
-          <button class="btn-mini" onclick="send('play|${encodeURIComponent(t.url)}')">▶</button>
-          <button class="btn-mini dl" onclick="send('download|${encodeURIComponent(t.url)}|${encodeURIComponent(t.title || "track")}')">⬇</button>
-        </div>
-      `;
-      list.appendChild(div);
-    });
+    const data = await r.json();
+    allTracks = data.tracks || [];
+    document.getElementById('count').textContent = allTracks.length + ' треков';
+    filtered = allTracks;
+    render();
   } catch (e) {
-    list.innerHTML = `<div class="empty">❌ Ошибка: ${e.message}</div>`;
+    document.getElementById('content').innerHTML = `
+      <div class="center-msg">
+        📭 Библиотека ещё не готова.<br>
+        Дождись окончания загрузки в боте,<br>потом обнови пульт.
+      </div>`;
   }
 }
 
-function refreshLikes() {
-  send('reload');
-  showToast('🎧 Обновляю лайки... (30-60 сек)');
-  setTimeout(loadTracks, 60000);
+// === РЕНДЕР СЕТКИ ===
+function render() {
+  const content = document.getElementById('content');
+  if (!filtered.length) {
+    content.innerHTML = '<div class="center-msg">🔍 Ничего не найдено</div>';
+    return;
+  }
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  
+  filtered.forEach((t, idx) => {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    
+    const cover = t.thumb
+      ? `<img src="${t.thumb}" loading="lazy" onerror="this.parentNode.textContent='🎵'">`
+      : '🎵';
+    
+    const title = escapeHtml(t.title || 'Unknown');
+    const artist = escapeHtml(t.artist || '');
+    const file = escapeAttr(t.file || '');
+    
+    tile.innerHTML = `
+      <div class="cover">${cover}</div>
+      <div class="info">
+        <div class="title">${title}</div>
+        <div class="artist">${artist}</div>
+      </div>
+    `;
+    tile.onclick = () => playTrack(t);
+    grid.appendChild(tile);
+  });
+  
+  content.innerHTML = '';
+  content.appendChild(grid);
 }
 
-loadTracks();
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escapeAttr(s) {
+  return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// === ИГРАТЬ ===
+function playTrack(t) {
+  if (!t.file) {
+    showToast('❌ Файл не найден');
+    return;
+  }
+  showToast('▶ ' + (t.title || '').substring(0, 30));
+  send('play_file|' + t.file);
+  
+  const np = document.getElementById('nowPlaying');
+  document.getElementById('npText').textContent = t.title + ' — ' + (t.artist || '');
+  np.classList.add('show');
+}
+
+function stopPlay() {
+  send('stop');
+  document.getElementById('nowPlaying').classList.remove('show');
+}
+
+// === ПОИСК ===
+const searchInput = document.getElementById('search');
+const clearBtn = document.getElementById('clearBtn');
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase();
+  clearBtn.classList.toggle('show', q.length > 0);
+  
+  if (!q) {
+    filtered = allTracks;
+  } else {
+    filtered = allTracks.filter(t => {
+      const title = (t.title || '').toLowerCase();
+      const artist = (t.artist || '').toLowerCase();
+      return title.includes(q) || artist.includes(q);
+    });
+  }
+  render();
+});
+
+function clearSearch() {
+  searchInput.value = '';
+  clearBtn.classList.remove('show');
+  filtered = allTracks;
+  render();
+  searchInput.focus();
+}
+
+// === СТАРТ ===
+loadLibrary();
 </script>
 
 </body>
