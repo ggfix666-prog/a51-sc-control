@@ -109,12 +109,12 @@ let liked = new Set(JSON.parse(localStorage.getItem('sc_liked') || '[]'));
 
 // ── ТОКЕН ─────────────────────────────────
 function getToken() {
-  let t = localStorage.getItem('a51_bot_token');
+  let t = localStorage.getItem('a51_bot_token_v2');
   if (!t) {
     t = prompt('Введи токен бота (сохранится только на этом телефоне):');
     if (!t || t.trim().length < 20) { alert('Без токена пульт не работает'); return null; }
     t = t.trim();
-    localStorage.setItem('a51_bot_token', t);
+    localStorage.setItem('a51_bot_token_v2', t);
   }
   return t;
 }
