@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>A51 Sound</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  background: #111; color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+}
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; background: #1a1a1a;
+  position: sticky; top: 0; z-index: 100;
+  border-bottom: 1px solid #2a2a2a;
+}
+.logo { font-size: 17px; font-weight: 800; }
+.logo span { color: #ff5500; }
+.hdr-btns { display: flex; gap: 8px; }
+.hdr-btn {
+  background: #2a2a2a; border: none; border-radius: 50%;
+  width: 34px; height: 34px; font-size: 15px;
+  color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.hdr-btn:active { opacity: 0.6; }
+#now-playing {
+  display: none; align-items: center; gap: 10px;
+  padding: 8px 14px; background: #1e1e1e;
+  border-bottom: 1px solid #2a2a2a;
+}
+#now-playing.show { display: flex; }
+.np-text { flex: 1; min-width: 0; }
+.np-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-artist { font-size: 11px; color: #888; }
+.np-eq { color: #ff5500; font-size: 14px; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.np-stop { background: none; border: none; color: #ff5500; font-size: 22px; cursor: pointer; }
+.search-wrap {
+  padding: 8px 14px; background: #1a1a1a;
+  position: sticky; top: 58px; z-index: 99;
+  border-bottom: 1px solid #2a2a2a;
+}
+#search {
+  width: 100%; padding: 8px 14px;
+  background: #2a2a2a; border: none; border-radius: 20px;
+  color: #fff; font-size: 14px; outline: none;
+}
+#search::placeholder { color: #555; }
+.tabs { display: flex; background: #1a1a1a; border-bottom: 1px solid #2a2a2a; }
+.tab {
+  flex: 1; padding: 10px 8px; background: none; border: none;
+  color: #666; font-size: 13px; font-weight: 600; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tab.on { color: #ff5500; border-bottom-color: #ff5500; }
+#grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 2px; padding: 2px;
+}
+.tr {
+  position: relative; cursor: pointer;
+  aspect-ratio: 1; overflow: hidden; background: #1e1e1e;
+}
+.tr:active { opacity: 0.65; }
+.tr.on { outline: 2px solid #ff5500; outline-offset: -2px; }
+.tr-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tr-no-img {
+  width: 100%; height: 100%; display: flex;
+  align-items: center; justify-content: center;
+  font-size: 24px; background: #222;
+}
+.tr-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.82));
+  padding: 18px 5px 4px;
+}
+.tr-title { font-size: 9.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-artist { font-size: 8.5px; color: #bbb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-play-dot {
+  display: none; position: absolute; top: 4px; left: 4px;
+  width: 14px; height: 14px; background: #ff5500; border-radius: 50%;
+  align-items: center; justify-content: center; font-size: 7px; color: #fff;
+}
+.tr.on .tr-play-dot { display: flex; }
+#status-block {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 60px 20px; gap: 14px; color: #555;
+  grid-column: 1 / -1;
+}
+.spin {
+  width: 38px; height: 38px; border: 3px solid #2a2a2a;
+  border-top-color: #ff5500; border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#toast {
+  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+  background: #2a2a2a; color: #fff; padding: 8px 20px;
+  border-radius: 22px; font-size: 13px; white-space: nowrap;
+  opacity: 0; transition: opacity 0.2s; pointer-events: none;
+  z-index: 9999; max-width: 90vw;
+}
+#toast.show { opacity: 1; }
+#toast.ok { background: #27ae60; }
+#toast.err { background: #c0392b; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">A51 <span>Sound</span></div>
+  <div class="hdr-btns">
+    <button class="hdr-btn" onclick="doStop()">⏹</button>
+    <button class="hdr-btn" onclick="doVolume()">🔊</button>
+  </div>
+</div>
+
+<div id="now-playing">
+  <div class="np-text">
+    <div class="np-title" id="np-title">—</div>
+    <div class="np-artist" id="np-artist"></div>
+  </div>
+  <span class="np-eq">♫</span>
+  <button class="np-stop" onclick="doStop()">⏹</button>
+</div>
+
+<div class="search-wrap">
+  <input id="search" type="search" placeholder="🔍 Поиск..." oninput="onSearch(this.value)">
+</div>
+
+<div class="tabs">
+  <button class="tab on" onclick="switchTab('all',this)">🎵 Треки</button>
+  <button class="tab" onclick="switchTab('liked',this)">❤️ Лайки</button>
+  <button class="tab" onclick="switchTab('sound',this)">🔊 Звук</button>
+</div>
+
+<div id="grid">
+  <div id="status-block">
+    <div class="spin"></div>
+    <div>Загружаем треки...</div>
+  </div>
+</div>
+
+<div id="sound-panel" style="display:none; padding:16px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <button onclick="quickVol(20)" class="vb">🔈 20%</button>
+    <button onclick="quickVol(50)" class="vb">🔉 50%</button>
+    <button onclick="quickVol(80)" class="vb">🔊 80%</button>
+    <button onclick="quickVol(100)" class="vb">🔊 100%</button>
+    <button onclick="doStop()" style="grid-column:span 2;background:#c0392b;border:none;color:#fff;border-radius:12px;padding:16px;font-size:15px;font-weight:600;cursor:pointer;">⏹ Остановить</button>
+  </div>
+</div>
+
+<style>.vb{background:#2a2a2a;border:none;color:#fff;border-radius:12px;padding:16px;font-size:14px;cursor:pointer;}</style>
+
+<div id="toast"></div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready(); tg.expand();
+
+const LIB_URL = 'https://raw.githack.com/ggfix666-prog/a51-sc-control/main/library.json';
+
+let allTracks = [];
+let curTab = 'all';
+let curFile = null;
+let liked = new Set(JSON.parse(localStorage.getItem('sc_liked') || '[]'));
+
+// ══════════════════════════════════════════════
+//  ТОКЕН — берём из localStorage, не из файла!
+// ══════════════════════════════════════════════
+function getToken() {
+  let t = localStorage.getItem('a51_bot_token');
+  if (!t) {
+    t = prompt('Введи токен бота (один раз, хранится локально):');
+    if (!t || t.length < 20) {
+      alert('Без токена не работает');
+      return null;
+    }
+    t = t.trim();
+    localStorage.setItem('a51_bot_token', t);
+  }
+  return t;
+}
+
+function getChatId() {
+  return tg.initDataUnsafe?.user?.id;
+}
+
+// ── ОТПРАВКА В BOT API (не закрывает Web App) ──
+async function send(cmd) {
+  const token = getToken();
+  const chatId = getChatId();
+  if (!token || !chatId) {
+    toast('⚠️ Нет токена или chat_id', 'err');
+    return false;
+  }
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: 'sc:' + cmd })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return true;
+  } catch(e) {
+    toast('❌ ' + e.message, 'err');
+    return false;
+  }
+}
+
+// ── ЗАГРУЗКА ──
+async function loadLib() {
+  try {
+    const r = await fetch(LIB_URL + '?_=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    allTracks = data.tracks || [];
+    renderGrid(allTracks);
+  } catch(e) {
+    document.getElementById('status-block').innerHTML =
+      `<div style="color:#c0392b">❌ ${e.message}</div>
+       <button onclick="loadLib()" style="background:#ff5500;border:none;color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;cursor:pointer;margin-top:8px">Повторить</button>`;
+  }
+}
+
+// ── РЕНДЕР ──
+function renderGrid(tracks) {
+  const g = document.getElementById('grid');
+  if (!tracks.length) {
+    g.innerHTML = '<div id="status-block"><div>Ничего не найдено</div></div>';
+    return;
+  }
+  g.innerHTML = '';
+  tracks.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'tr' + (t.file === curFile ? ' on' : '');
+    d.dataset.file = t.file;
+    const cover = t.thumb
+      ? `<img class="tr-img" src="${t.thumb}" loading="lazy" decoding="async">`
+      : `<div class="tr-no-img">🎵</div>`;
+    d.innerHTML = `<div class="tr-play-dot">▶</div>${cover}
+      <div class="tr-overlay">
+        <div class="tr-title">${esc(t.title || t.file)}</div>
+        ${t.artist ? `<div class="tr-artist">${esc(t.artist)}</div>` : ''}
+      </div>`;
+    d.addEventListener('click', () => playTrack(t));
+    g.appendChild(d);
+  });
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── ПОИСК / ВКЛАДКИ ──
+function onSearch(q) {
+  q = q.toLowerCase().trim();
+  const pool = getPool();
+  renderGrid(q ? pool.filter(t =>
+    (t.title||'').toLowerCase().includes(q) ||
+    (t.artist||'').toLowerCase().includes(q)
+  ) : pool);
+}
+
+function getPool() {
+  if (curTab === 'liked') return allTracks.filter(t => liked.has(t.file));
+  return allTracks;
+}
+
+function switchTab(tab, el) {
+  curTab = tab;
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('search').value = '';
+  const grid = document.getElementById('grid');
+  const sound = document.getElementById('sound-panel');
+  if (tab === 'sound') {
+    grid.style.display = 'none';
+    sound.style.display = 'block';
+  } else {
+    grid.style.display = 'grid';
+    sound.style.display = 'none';
+    renderGrid(getPool());
+  }
+}
+
+// ── ВОСПРОИЗВЕДЕНИЕ ──
+async function playTrack(t) {
+  try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
+  const ok = await send('play_file|' + encodeURIComponent(t.file));
+  if (!ok) return;
+  curFile = t.file;
+  const np = document.getElementById('now-playing');
+  np.classList.add('show');
+  document.getElementById('np-title').textContent = t.title || t.file;
+  document.getElementById('np-artist').textContent = t.artist || '';
+  document.querySelectorAll('.tr').forEach(el =>
+    el.classList.toggle('on', el.dataset.file === t.file)
+  );
+  toast('▶ ' + (t.title || t.file), 'ok');
+}
+
+async function doStop() {
+  const ok = await send('stop');
+  if (!ok) return;
+  curFile = null;
+  document.getElementById('now-playing').classList.remove('show');
+  document.querySelectorAll('.tr.on').forEach(el => el.classList.remove('on'));
+  toast('⏹ Стоп');
+}
+
+async function doVolume() {
+  const v = prompt('Громкость (0–100):', '60');
+  if (v === null || v.trim() === '' || isNaN(v)) return;
+  await quickVol(parseInt(v));
+}
+
+async function quickVol(v) {
+  const ok = await send('volume|' + v);
+  if (ok) toast('🔊 ' + v + '%', 'ok');
+}
+
+// ── TOAST ──
+let _tt;
+function toast(msg, cls) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (cls ? ' ' + cls : '');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => el.className = '', 2200);
+}
+
+loadLib();
+</script>
+</body>
+      </html>
