@@ -2,7 +2,7 @@ import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 import subprocess, os, json, time, signal, threading, random
 
-TOKEN = '8750288939:AAGJclUgG-B3BLImowWe2EGJHQSJUNPdRvM'
+TOKEN = '8733717882:AAFyHqQpFBFVKLOgB6w1WRxqx7_DX9xxg6I'
 ADMIN_ID = 6678107119
 PULT_URL = 'https://raw.githack.com/ggfix666-prog/a51-sc-control/main/prank.html'
 
@@ -55,29 +55,29 @@ def start(message):
         "/wifi /wifiscan /toast\n\n"
         "🎭 <b>ПРАНК</b>\n"
         "/prank /ghost /insane\n\n"
-        "⏻ <b>ПИТАНИЕ</b>\n"
-        "/pause — выключить бота (пауза)\n"
-        "/resume — включить бота\n\n"
+        "⏻ <b>УПРАВЛЕНИЕ БОТОМ</b>\n"
+        "/botoff — выключить бота\n"
+        "/boton — включить бота\n\n"
         "Открой «🎮 Пульт» внизу 👇",
         parse_mode='HTML', reply_markup=prank_kb())
 
 # ── KILL SWITCH ──
-@bot.message_handler(commands=['pause'])
-def pause_cmd(message):
+@bot.message_handler(commands=['botoff'])
+def botoff_cmd(message):
     global PAUSED
     PAUSED = True
-    bot.reply_to(message, "⏸ *Бот на паузе.*\nВсе команды игнорируются.\nОтправь /resume для возобновления.", parse_mode='Markdown')
+    bot.reply_to(message, "💤 *Бот выключен.*\nВсе команды игнорируются.\nНапиши /boton чтобы включить.", parse_mode='Markdown')
 
-@bot.message_handler(commands=['resume'])
-def resume_cmd(message):
+@bot.message_handler(commands=['boton'])
+def boton_cmd(message):
     global PAUSED
     PAUSED = False
-    bot.reply_to(message, "▶️ *Бот снова активен.*\nВсе команды работают.", parse_mode='Markdown')
+    bot.reply_to(message, "▶️ *Бот снова работает.*\nВсе команды активны.", parse_mode='Markdown')
 
-# Глушилка — ловит всё, если PAUSED=True
-@bot.message_handler(func=lambda m: PAUSED and m.text and not m.text.startswith('/resume') and not m.text.startswith('/pause') and not m.text.startswith('/start'))
+# Глушилка — ловит всё, если PAUSED=True (кроме /boton, /botoff, /start)
+@bot.message_handler(func=lambda m: PAUSED and m.text and not m.text.startswith('/boton') and not m.text.startswith('/botoff') and not m.text.startswith('/start'))
 def kill_all(message):
-    bot.reply_to(message, "🔒 Бот на паузе.\nНапиши /resume чтобы включить.")
+    bot.reply_to(message, "🔒 Бот выключен.\nНапиши /boton чтобы включить.")
 
 # ── ФОНАРИК-МИГАНИЕ ──
 @bot.message_handler(commands=['flash'])
@@ -567,8 +567,8 @@ def handle_webapp(message):
         elif cmd == '/flash': flash_cmd(fake)
         elif cmd == '/fakecall': fakecall_cmd(fake)
         elif cmd == '/loud': loud_cmd(fake)
-        elif cmd == '/pause': pause_cmd(fake)
-        elif cmd == '/resume': resume_cmd(fake)
+        elif cmd == '/botoff': botoff_cmd(fake)
+        elif cmd == '/boton': boton_cmd(fake)
         else: bot.send_message(message.chat.id, f"❓ {raw[:40]}")
     except Exception as e:
         print(f"[WEBAPP] ERROR: {e}")
