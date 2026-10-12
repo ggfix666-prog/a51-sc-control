@@ -8,6 +8,7 @@ bot = telebot.TeleBot(TOKEN)
 
 DB_PATH = '/data/data/com.termux/files/home/players.db'
 
+# ── БАЗА ──
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -59,15 +60,20 @@ def main_kb():
     m.add(KeyboardButton("🎮 Играть", web_app=WebAppInfo(url=PULT_URL)))
     return m
 
+# ── СТАРТ ──
 @bot.message_handler(commands=['start'])
 def start(message):
     get_player(message.from_user.id, message.from_user.username)
     bot.send_message(message.chat.id,
         "🎮 <b>hardtekk</b>\n\n"
-        "🎯 <b>Одиночная игра</b> — набери 300 очков на время.\n"
-        "⚔️ <b>Дуэль</b> — скоро.\n\n"
+        "🧠 <b>Викторина</b> — набери 300 очков на время.\n"
+        "🔢 <b>Математика на время</b> — решай примеры, не теряй жизни.\n\n"
         "Жми <b>«🎮 Играть»</b> внизу 👇",
         parse_mode='HTML', reply_markup=main_kb())
+
+@bot.message_handler(commands=['menu'])
+def menu_cmd(message):
+    bot.send_message(message.chat.id, "Меню обновлено 👇", reply_markup=main_kb())
 
 # ── ОБРАБОТЧИК КОМАНД ОТ ПУЛЬТА ──
 @bot.message_handler(func=lambda m: m.text and m.text.startswith('game:'))
@@ -78,6 +84,7 @@ def game_cmd(message):
     uid = message.from_user.id
     uname = message.from_user.username
 
+    # ── СТАТИСТИКА ──
     if cmd == 'stats':
         p = get_player(uid, uname)
         acc = 0
@@ -92,6 +99,7 @@ def game_cmd(message):
             f"⏱ Лучшее время: {bt} сек",
             parse_mode='HTML')
 
+    # ── ТОП ──
     elif cmd == 'top':
         top = get_top(10)
         if not top:
@@ -104,20 +112,22 @@ def game_cmd(message):
                 t += f"{medal} @{un or 'игрок'} — {sc} очков{bt_str}\n"
             bot.send_message(message.chat.id, t, parse_mode='HTML')
 
+    # ── ОТВЕТ В ВИКТОРИНЕ ──
     elif cmd == 'answer':
-        # answer|diff|correct
         if len(parts) >= 3:
             diff = parts[1]
             is_correct = parts[2] == '1'
             p = get_player(uid, uname)
+            add_score = 0
+            if is_correct:
+                add_score = 10 if diff == 'easy' else 20 if diff == 'medium' else 30
             update_player(uid,
                 questions_total=p['questions_total'] + 1,
                 questions_correct=p['questions_correct'] + (1 if is_correct else 0),
-                score=p['score'] + (10 if diff == 'easy' else 20 if diff == 'medium' else 30) if is_correct else p['score']
-            )
+                score=p['score'] + add_score)
 
+    # ── ФИНАЛ ВИКТОРИНЫ ──
     elif cmd == 'finish':
-        # finish|elapsed|correct|total
         if len(parts) >= 4:
             elapsed = int(parts[1])
             correct = int(parts[2])
@@ -135,12 +145,53 @@ def game_cmd(message):
                 f"✅ Правильных: {correct}/{total}\n"
                 f"⭐ Всего очков: {p['score']}")
 
+    # ── ОТВЕТ В МАТЕМАТИКЕ ──
+    elif cmd == 'math_answer':
+        if len(parts) >= 3:
+            level = parts[1]
+            is_correct = parts[2] == '1'
+            p = get_player(uid, uname)
+            update_player(uid,
+                questions_total=p['questions_total'] + 1,
+                questions_correct=p['questions_correct'] + (1 if is_correct else 0),
+                score=p['score'] + (10 if is_correct else 0))
+
+    # ── ПОТЕРЯ ЖИЗНИ ──
+    elif cmd == 'math_life_lost':
+        pass  # можно вести отдельный счётчик, если захочешь
+
+    # ── ФИНАЛ МАТЕМАТИКИ ──
+    elif cmd == 'math_finish':
+        if len(parts) >= 3:
+            elapsed = int(parts[1])
+            solved = int(parts[2])
+            p = get_player(uid, uname)
+            best = p['best_time']
+            if best == 0 or elapsed < best:
+                best = elapsed
+            update_player(uid,
+                games_played=p['games_played'] + 1,
+                best_time=best)
+            bot.send_message(message.chat.id,
+                f"🏁 <b>Математика завершена!</b>\n\n"
+                f"⏱ Время: {elapsed} сек\n"
+                f"✅ Решено примеров: {solved}\n"
+                f"⭐ Всего очков: {p['score']}",
+                parse_mode='HTML')
+
+    # ── ВЫХОД ──
+    elif cmd == 'exit':
+        pass
+
+# ── ЗАПУСК С ЗАЩИТОЙ ОТ ПАДЕНИЙ ──
+init_db()
 print("🎮 Game Bot запущен...")
 while True:
     try:
         bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
     except KeyboardInterrupt:
-        print("Остановлен вручную."); break
+        print("Остановлен вручную.")
+        break
     except Exception as e:
         print(f"Ошибка: {e}, перезапуск через 5 сек...")
         time.sleep(5)
