@@ -36,9 +36,6 @@ button.action.success { color:#2ecc71; }
 button.action.success:active { background:#2ecc71; color:#fff; }
 button.action.warn { color:#f39c12; }
 button.action.warn:active { background:#f39c12; color:#fff; }
-button.action.big { min-height:100px; }
-button.action.big .icon { font-size:36px; }
-button.action.big .label { font-size:14px; font-weight:700; }
 .icon { font-size:24px; line-height:1; }
 .label { font-size:12px; }
 button.ready { grid-column:span 2; background:linear-gradient(135deg, var(--accent), #1e88e5); color:#fff; min-height:60px; font-size:16px; font-weight:700; border-radius:16px; border:none; cursor:pointer; }
@@ -209,11 +206,6 @@ button.ready:active { transform:scale(0.97); }
       <input id="alarmRepeat" type="number" min="1" max="100" value="10" />
     </div>
 
-    <div class="input-block">
-      <label>📳 Вибрация:</label>
-      <input id="alarmVibrate" placeholder="on / off" value="on" />
-    </div>
-
     <button class="ready" style="width:100%; margin-top:10px;" onclick="setAlarmT()">✅ ГОТОВО — Поставить будильник</button>
 
     <div class="section-title">Управление</div>
@@ -223,7 +215,7 @@ button.ready:active { transform:scale(0.97); }
     </div>
 
     <div class="warn-box">
-      ⚠️ Будильник сработает, только если Termux запущен и включён <code>termux-wake-lock</code>. Ночью телефон не должен «убивать» приложение.
+      ⚠️ Будильник сработает, только если Termux запущен и включён <code>termux-wake-lock</code>.
     </div>
   </div>
 
@@ -239,7 +231,7 @@ button.ready:active { transform:scale(0.97); }
     <button class="ready" style="width:100%; margin-top:10px;" onclick="setAlarmS()">✅ ГОТОВО — Открыть будильник</button>
 
     <div class="warn-box">
-      ⚠️ Откроет <b>приложение «Часы»</b> Samsung с уже введённым временем. Нажми «Сохранить» в приложении — иначе будильник не установится. Играет <b>системный рингтон</b>.
+      ⚠️ Откроет <b>приложение «Часы»</b> Samsung с уже введённым временем. Нажми «Сохранить» в приложении. Играет <b>системный рингтон</b>.
     </div>
   </div>
 
@@ -292,12 +284,11 @@ function sendInput(prefix, inputId) {
   document.getElementById(inputId).value = '';
 }
 
-// ── БУДИЛЬНИК TERMUX ──
+// ── БУДИЛЬНИК TERMUX — ОДНА КОМАНДА, БЕЗ ЗАДЕРЖЕК ──
 function setAlarmT() {
   const time = document.getElementById('alarmTime').value;
   const track = document.getElementById('alarmTrack').value.trim();
   const repeat = document.getElementById('alarmRepeat').value || '10';
-  const vibrate = document.getElementById('alarmVibrate').value.trim().toLowerCase();
 
   if (!time) { showToast('⚠️ Укажи время', 'err'); return; }
   if (!track) { showToast('⚠️ Укажи имя трека', 'err'); return; }
@@ -305,10 +296,7 @@ function setAlarmT() {
     showToast('⚠️ Повторов: 1-100', 'err'); return;
   }
 
-  send('/alarm_vibrate ' + (vibrate === 'off' ? 'off' : 'on'));
-  setTimeout(() => {
-    send('/alarm ' + time + ' ' + track + ' ' + repeat);
-  }, 400);
+  send('/alarm ' + time + ' ' + track + ' ' + repeat);
 }
 
 // ── БУДИЛЬНИК SAMSUNG ──
@@ -330,4 +318,4 @@ document.addEventListener('keydown', e => {
 </script>
 
 </body>
-</html>
+                                                                                                                                   </html>
