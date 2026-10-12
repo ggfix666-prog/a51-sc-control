@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>hardtekk</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg: #000;
+  --card: #141414;
+  --pink: #ff1493;
+  --pink-dark: #c9007a;
+  --pink-light: #ff69b4;
+  --grey: #2a2a2a;
+  --grey-light: #3a3a3a;
+  --text: #fff;
+  --muted: #888;
+  --green: #00c853;
+  --yellow: #ffc107;
+  --red: #ff1744;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'SF Pro', system-ui, sans-serif;
+  min-height: 100vh;
+  padding-bottom: 30px;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+.logo { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
+.logo .hard { color: var(--pink); }
+.logo .tekk { color: #fff; }
+
+/* TIMER */
+.timer {
+  background: var(--grey);
+  border: 2px solid var(--grey-light);
+  border-radius: 12px;
+  padding: 6px 14px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--pink);
+  min-width: 70px;
+  text-align: center;
+  display: none;
+}
+.timer.show { display: block; }
+
+/* SCORE */
+.score {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pink);
+  padding: 8px 0 4px;
+  display: none;
+}
+.score.show { display: block; }
+
+/* MENU */
+.menu { padding: 20px 16px; }
+.menu-title { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 14px; font-weight: 700; }
+
+button.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 18px;
+  background: var(--pink);
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: transform 0.1s, background 0.2s;
+  font-family: inherit;
+}
+button.btn:active { transform: scale(0.96); background: var(--pink-dark); }
+button.btn.secondary {
+  background: var(--grey);
+  color: var(--pink);
+  border: 2px solid var(--pink);
+}
+button.btn.secondary:active { background: var(--pink); color: #fff; }
+
+/* GAME */
+.game { padding: 0 16px; display: none; }
+.game.active { display: block; }
+
+.question-box {
+  background: var(--card);
+  border: 2px solid var(--grey-light);
+  border-radius: 16px;
+  padding: 20px 18px;
+  margin: 12px 0 20px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.4;
+  transition: color 0.3s;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.question-box.easy { color: var(--green); border-color: var(--green); }
+.question-box.medium { color: var(--yellow); border-color: var(--yellow); }
+.question-box.hard { color: var(--red); border-color: var(--red); }
+
+.theme-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.answers { display: grid; gap: 10px; }
+.answer {
+  background: var(--grey);
+  color: #fff;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.1s, background 0.2s, border-color 0.2s;
+  font-family: inherit;
+}
+.answer:active { transform: scale(0.97); }
+.answer.correct { background: var(--green); border-color: var(--green); color: #fff; }
+.answer.wrong { background: var(--red); border-color: var(--red); color: #fff; }
+.answer.disabled { pointer-events: none; opacity: 0.7; }
+
+/* RESULT */
+.result {
+  padding: 40px 20px;
+  text-align: center;
+  display: none;
+}
+.result.active { display: block; }
+.result h2 { font-size: 28px; margin-bottom: 14px; color: var(--pink); }
+.result p { font-size: 16px; color: var(--text); margin-bottom: 8px; }
+.result .big { font-size: 42px; font-weight: 900; color: var(--pink); margin: 16px 0; }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--pink);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0;
+  transition: all 0.3s;
+  pointer-events: none;
+  z-index: 1000;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo"><span class="hard">hard</span><span class="tekk">tekk</span></div>
+  <div class="timer" id="timer">00:00</div>
+</div>
+
+<div class="score" id="scoreDisplay">⭐ 0 / 300</div>
+
+<!-- МЕНЮ -->
+<div class="menu" id="menu">
+  <div class="menu-title">Режимы игры</div>
+  <button class="btn" onclick="startSolo()">🎯 Одиночная игра</button>
+  <button class="btn secondary" onclick="showToast('Скоро!')">⚔️ Дуэль с другом</button>
+  <button class="btn secondary" onclick="send('stats')">📊 Моя статистика</button>
+  <button class="btn secondary" onclick="send('top')">🏆 Топ игроков</button>
+</div>
+
+<!-- ИГРА -->
+<div class="game" id="game">
+  <div class="theme-label" id="themeLabel">—</div>
+  <div class="question-box" id="question">Загрузка...</div>
+  <div class="answers" id="answers"></div>
+</div>
+
+<!-- РЕЗУЛЬТАТ -->
+<div class="result" id="result">
+  <h2>🎉 Победа!</h2>
+  <p>Ты набрал 300 очков!</p>
+  <div class="big" id="finalTime">00:00</div>
+  <p>Время прохождения</p>
+  <button class="btn" style="margin-top:24px;" onclick="backToMenu()">🏠 В меню</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready(); tg.expand();
+try { tg.setHeaderColor('#000000'); tg.setBackgroundColor('#000000'); } catch(e) {}
+
+// ── НАСТРОЙКИ ──
+const TOKEN = '8738305538:AAFSk31fQlGWzNlkuYbVk1aeqsrk_pZp90U';
+const CHAT_ID = tg.initDataUnsafe?.user?.id || 6678107119;
+
+// ── БАЗА ВОПРОСОВ (копия questions.json) ──
+// Чтобы не грузить JSON — беру краткую версию. Полную можно fetch'ом.
+let QUESTIONS = {};
+let currentQuestion = null;
+let currentTheme = '';
+let score = 0;
+let correct = 0;
+let total = 0;
+let startTime = 0;
+let timerInterval = null;
+let answered = false;
+
+// ── ЗАГРУЗКА ВОПРОСОВ ──
+async function loadQuestions() {
+  try {
+    const r = await fetch('https://raw.githubusercontent.com/ggfix666-prog/a51-sc-control/main/questions.json?t=' + Date.now());
+    QUESTIONS = await r.json();
+  } catch(e) {
+    showToast('❌ Не удалось загрузить вопросы');
+  }
+}
+
+// ── ОТПРАВКА В БОТА ──
+async function send(cmd) {
+  try {
+    await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: CHAT_ID, text: 'game:' + cmd })
+    });
+  } catch(e) { console.error(e); }
+}
+
+// ── МЕНЮ ──
+function backToMenu() {
+  document.getElementById('menu').style.display = 'block';
+  document.getElementById('game').classList.remove('active');
+  document.getElementById('result').classList.remove('active');
+  document.getElementById('timer').classList.remove('show');
+  document.getElementById('scoreDisplay').classList.remove('show');
+  if (timerInterval) clearInterval(timerInterval);
+}
+
+function showToast(text) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+// ── ОДИНОЧНАЯ ИГРА ──
+async function startSolo() {
+  if (Object.keys(QUESTIONS).length === 0) {
+    await loadQuestions();
+  }
+  if (Object.keys(QUESTIONS).length === 0) {
+    showToast('⚠️ Вопросы не загрузились');
+    return;
+  }
+  score = 0;
+  correct = 0;
+  total = 0;
+  answered = false;
+  startTime = Date.now();
+
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('game').classList.add('active');
+  document.getElementById('timer').classList.add('show');
+  document.getElementById('scoreDisplay').classList.add('show');
+  document.getElementById('scoreDisplay').textContent = `⭐ 0 / 300`;
+
+  // Таймер
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(updateTimer, 1000);
+
+  nextQuestion();
+}
+
+function updateTimer() {
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const s = String(elapsed % 60).padStart(2, '0');
+  document.getElementById('timer').textContent = `${m}:${s}`;
+}
+
+function nextQuestion() {
+  answered = false;
+  // Выбор случайной темы и вопроса
+  const themes = Object.keys(QUESTIONS);
+  const themeKey = themes[Math.floor(Math.random() * themes.length)];
+  const theme = QUESTIONS[themeKey];
+  const q = theme.questions[Math.floor(Math.random() * theme.questions.length)];
+
+  currentQuestion = q;
+  currentTheme = theme.name;
+
+  // Отображение
+  document.getElementById('themeLabel').textContent = `${theme.name} • ${diffName(q.diff)} (${diffScore(q.diff)} очков)`;
+  const qBox = document.getElementById('question');
+  qBox.className = 'question-box ' + q.diff;
+  qBox.textContent = '❓ ' + q.q;
+
+  // Кнопки ответов
+  const answersDiv = document.getElementById('answers');
+  answersDiv.innerHTML = '';
+  const letters = ['A', 'B', 'C', 'D'];
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer';
+    btn.textContent = `${letters[i]}) ${opt}`;
+    btn.onclick = () => handleAnswer(i, btn);
+    answersDiv.appendChild(btn);
+  });
+}
+
+function diffName(d) {
+  return d === 'easy' ? 'лёгкий' : d === 'medium' ? 'средний' : 'сложный';
+}
+function diffScore(d) {
+  return d === 'easy' ? 10 : d === 'medium' ? 20 : 30;
+}
+
+function handleAnswer(idx, btn) {
+  if (answered) return;
+  answered = true;
+
+  const buttons = document.querySelectorAll('.answer');
+  buttons.forEach(b => b.classList.add('disabled'));
+
+  const correctIdx = currentQuestion.answer;
+  const isCorrect = idx === correctIdx;
+
+  if (isCorrect) {
+    btn.classList.add('correct');
+    score += diffScore(currentQuestion.diff);
+    correct++;
+  } else {
+    btn.classList.add('wrong');
+    // Показать правильный
+    buttons[correctIdx].classList.add('correct');
+  }
+  total++;
+  document.getElementById('scoreDisplay').textContent = `⭐ ${score} / 300`;
+
+  // Отправить результат боту
+  send(`answer|${currentQuestion.diff}|${isCorrect ? 1 : 0}`);
+
+  // Следующий вопрос или финиш
+  setTimeout(() => {
+    if (score >= 300) {
+      finishGame();
+    } else {
+      nextQuestion();
+    }
+  }, 1200);
+}
+
+function finishGame() {
+  if (timerInterval) clearInterval(timerInterval);
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const s = String(elapsed % 60).padStart(2, '0');
+
+  document.getElementById('game').classList.remove('active');
+  document.getElementById('result').classList.add('active');
+  document.getElementById('finalTime').textContent = `${m}:${s}`;
+
+  // Отправить результат боту
+  send(`finish|${elapsed}|${correct}|${total}`);
+}
+
+// ── СТАРТ ──
+loadQuestions();
+</script>
+
+</body>
+  </html>
