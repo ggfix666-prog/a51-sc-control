@@ -173,8 +173,14 @@ button.action.primary .label { font-size: 15px; }
       <button class="action" onclick="send('/photo')"><span class="icon">📸</span><span class="label">Фото</span></button>
       <button class="action" onclick="send('/selfie')"><span class="icon">🤳</span><span class="label">Селфи</span></button>
       <button class="action" onclick="send('/location')"><span class="icon">📍</span><span class="label">GPS</span></button>
+    </div>
+
+    <div class="section-title">Серии фото / видео</div>
+    <div class="grid g2">
+      <button class="action" onclick="send('/burst 5')"><span class="icon">📷</span><span class="label">Burst ×5</span></button>
+      <button class="action" onclick="send('/sburst 5')"><span class="icon">🎞</span><span class="label">Селфи ×5</span></button>
       <button class="action" onclick="send('/video 10')"><span class="icon">🎥</span><span class="label">Видео 10с</span></button>
-      <button class="action" onclick="send('/selfievideo 10')"><span class="icon">🤳🎥</span><span class="label">Видео селфи</span></button>
+      <button class="action" onclick="send('/selfievideo 10')"><span class="icon">🎬</span><span class="label">Селфи-видео 10с</span></button>
     </div>
 
     <div class="section-title">Инфо и управление</div>
@@ -185,6 +191,13 @@ button.action.primary .label { font-size: 15px; }
       <button class="action" onclick="send('/brightness 100')"><span class="icon">💡</span><span class="label">Свет+</span></button>
       <button class="action" onclick="send('/brightness 10')"><span class="icon">🌙</span><span class="label">Свет−</span></button>
       <button class="action" onclick="send('/silent')"><span class="icon">🔇</span><span class="label">Без звука</span></button>
+    </div>
+
+    <div class="section-title">Громкость</div>
+    <div class="grid g3">
+      <button class="action" onclick="send('/volume 20')"><span class="icon">🔉</span><span class="label">20%</span></button>
+      <button class="action" onclick="send('/volume 50')"><span class="icon">🔊</span><span class="label">50%</span></button>
+      <button class="action" onclick="send('/volume 100')"><span class="icon">🔊</span><span class="label">100%</span></button>
     </div>
 
     <div class="section-title">Голос</div>
@@ -237,9 +250,19 @@ button.action.primary .label { font-size: 15px; }
 
   <!-- PRANK -->
   <div class="page" id="prank">
+    <div class="section-title">🎯 Новые эффекты</div>
+    <div class="grid g3">
+      <button class="action warn" onclick="send('/flash 10')"><span class="icon">⚡</span><span class="label">Миг ×10</span></button>
+      <button class="action warn" onclick="send('/flash 30')"><span class="icon">✨</span><span class="label">Миг ×30</span></button>
+      <button class="action warn" onclick="send('/flash 100')"><span class="icon">🌩</span><span class="label">Стробоскоп</span></button>
+      <button class="action warn" onclick="send('/fakecall 15')"><span class="icon">📞</span><span class="label">Звонок 15с</span></button>
+      <button class="action warn" onclick="send('/fakecall 60')"><span class="icon">☎️</span><span class="label">Звонок 60с</span></button>
+      <button class="action warn" onclick="send('/loud')"><span class="icon">🔊</span><span class="label">LOUD</span></button>
+    </div>
+
     <div class="section-title">Мощные пранки</div>
     <button class="action warn" style="margin-bottom:10px;" onclick="send('/prank')">
-      <span class="icon">🎭</span><span class="label">Prank — случайный хаос (вибра + звук + фонарь)</span>
+      <span class="icon">🎭</span><span class="label">Prank — случайный хаос</span>
     </button>
     <button class="action warn" style="margin-bottom:10px;" onclick="send('/ghost')">
       <span class="icon">👻</span><span class="label">Ghost — режим призрака</span>
@@ -358,4 +381,4 @@ document.addEventListener('keydown', e => {
 </script>
 
 </body>
-  </html>
+                                                                                      </html>
