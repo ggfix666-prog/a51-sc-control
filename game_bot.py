@@ -66,8 +66,9 @@ def start(message):
     get_player(message.from_user.id, message.from_user.username)
     bot.send_message(message.chat.id,
         "🎮 <b>hardtekk</b>\n\n"
-        "🧠 <b>Викторина</b> — набери 300 очков на время.\n"
-        "🔢 <b>Математика на время</b> — решай примеры, не теряй жизни.\n\n"
+        "🧠 <b>Викторина</b> — 300 очков на время.\n"
+        "🔢 <b>Математика</b> — примеры с жизнями.\n"
+        "🔧 <b>Сварка</b> — 350 вопросов по профессии.\n\n"
         "Жми <b>«🎮 Играть»</b> внизу 👇",
         parse_mode='HTML', reply_markup=main_kb())
 
@@ -75,10 +76,10 @@ def start(message):
 def menu_cmd(message):
     bot.send_message(message.chat.id, "Меню обновлено 👇", reply_markup=main_kb())
 
-# ── ОБРАБОТЧИК КОМАНД ОТ ПУЛЬТА ──
+# ── КОМАНДЫ ОТ ПУЛЬТА ──
 @bot.message_handler(func=lambda m: m.text and m.text.startswith('game:'))
 def game_cmd(message):
-    raw = message.text[5:]  # без 'game:'
+    raw = message.text[5:]
     parts = raw.split('|')
     cmd = parts[0]
     uid = message.from_user.id
@@ -112,7 +113,7 @@ def game_cmd(message):
                 t += f"{medal} @{un or 'игрок'} — {sc} очков{bt_str}\n"
             bot.send_message(message.chat.id, t, parse_mode='HTML')
 
-    # ── ОТВЕТ В ВИКТОРИНЕ ──
+    # ── ОТВЕТ ВИКТОРИНЫ ──
     elif cmd == 'answer':
         if len(parts) >= 3:
             diff = parts[1]
@@ -145,10 +146,9 @@ def game_cmd(message):
                 f"✅ Правильных: {correct}/{total}\n"
                 f"⭐ Всего очков: {p['score']}")
 
-    # ── ОТВЕТ В МАТЕМАТИКЕ ──
+    # ── ОТВЕТ МАТЕМАТИКИ ──
     elif cmd == 'math_answer':
         if len(parts) >= 3:
-            level = parts[1]
             is_correct = parts[2] == '1'
             p = get_player(uid, uname)
             update_player(uid,
@@ -156,11 +156,9 @@ def game_cmd(message):
                 questions_correct=p['questions_correct'] + (1 if is_correct else 0),
                 score=p['score'] + (10 if is_correct else 0))
 
-    # ── ПОТЕРЯ ЖИЗНИ ──
     elif cmd == 'math_life_lost':
-        pass  # можно вести отдельный счётчик, если захочешь
+        pass
 
-    # ── ФИНАЛ МАТЕМАТИКИ ──
     elif cmd == 'math_finish':
         if len(parts) >= 3:
             elapsed = int(parts[1])
@@ -179,11 +177,44 @@ def game_cmd(message):
                 f"⭐ Всего очков: {p['score']}",
                 parse_mode='HTML')
 
+    # ── ОТВЕТ СВАРКИ ──
+    elif cmd == 'svar_answer':
+        if len(parts) >= 3:
+            diff = parts[1]
+            is_correct = parts[2] == '1'
+            p = get_player(uid, uname)
+            add = 0
+            if is_correct:
+                add = 10 if diff == 'easy' else 20 if diff == 'medium' else 30
+            update_player(uid,
+                questions_total=p['questions_total'] + 1,
+                questions_correct=p['questions_correct'] + (1 if is_correct else 0),
+                score=p['score'] + add)
+
+    # ── ФИНАЛ СВАРКИ ──
+    elif cmd == 'svar_finish':
+        if len(parts) >= 4:
+            elapsed = int(parts[1])
+            correct = int(parts[2])
+            total = int(parts[3])
+            p = get_player(uid, uname)
+            best = p['best_time']
+            if best == 0 or elapsed < best:
+                best = elapsed
+            update_player(uid,
+                games_played=p['games_played'] + 1,
+                best_time=best)
+            bot.send_message(message.chat.id,
+                f"🔧 <b>Сварка завершена!</b>\n\n"
+                f"⏱ Время: {elapsed} сек\n"
+                f"✅ Правильных: {correct}/{total}\n"
+                f"⭐ Всего очков: {p['score']}")
+
     # ── ВЫХОД ──
     elif cmd == 'exit':
         pass
 
-# ── ЗАПУСК С ЗАЩИТОЙ ОТ ПАДЕНИЙ ──
+# ── ЗАПУСК С ЗАЩИТОЙ ──
 init_db()
 print("🎮 Game Bot запущен...")
 while True:
